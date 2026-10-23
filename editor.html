@@ -1,0 +1,1344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MonolithCV - Editor</title>
+    <link rel="icon" type="image/png" href="icon.png" />
+    <style>
+        /* Variables and main colors */
+        :root {
+            --bg-body: #f0f2f7;
+            --bg-panel: #ffffff;
+            --bg-soft: #f8fafc;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border-light: #e2e8f0;
+            --border-focus: #94a3b8;
+            --primary: #0f172a;
+            --primary-hover: #334155;
+            --primary-text: #ffffff;
+            --accent: #6366f1;
+            --accent-soft: #e0e7ff;
+            --danger: #ef4444;
+            --danger-bg: rgba(239, 68, 68, 0.1);
+            --shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.05);
+            --shadow-md: 0 12px 40px rgba(15, 23, 42, 0.08);
+            --shadow-float: 0 20px 60px rgba(15, 23, 42, 0.18), 0 4px 12px rgba(15, 23, 42, 0.08);
+            --a4-w: 210mm;
+            --a4-h: 297mm;
+            --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            --font-serif: 'Georgia', 'Merriweather', 'Times New Roman', serif;
+            --font-mono: 'Consolas', 'Fira Code', 'Courier New', monospace;
+            --radius-sm: 12px;
+            --radius-md: 20px;
+            --radius-lg: 28px;
+            --radius-pill: 9999px;
+            --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+            --ease-smooth: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        /* True Dark Mode */
+        body.dark-mode {
+            --bg-body: #0a0a0a;
+            --bg-panel: #141414;
+            --bg-soft: #1e1e1e;
+            --text-main: #f5f5f5;
+            --text-muted: #a3a3a3;
+            --border-light: #2c2c2c;
+            --border-focus: #555555;
+            --primary: #ffffff;
+            --primary-hover: #e0e0e0;
+            --primary-text: #000000;
+            --accent: #818cf8;
+            --accent-soft: rgba(129, 140, 248, 0.15);
+            --danger: #f87171;
+            --danger-bg: rgba(248, 113, 113, 0.12);
+            --shadow-sm: 0 4px 12px rgba(0,0,0,0.4);
+            --shadow-md: 0 12px 40px rgba(0,0,0,0.6);
+            --shadow-float: 0 20px 60px rgba(0,0,0,0.8), 0 4px 12px rgba(0,0,0,0.5);
+        }
+
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border-focus); border-radius: 4px; transition: background 0.2s; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+        /* Base styles */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background-color: var(--bg-body); color: var(--text-main); font-family: var(--font-ui); line-height: 1.5; height: 100vh; overflow: hidden; transition: background-color 0.4s var(--ease-smooth), color 0.4s; }
+        button, input, textarea, select { font: inherit; color: inherit; border: none; background: none; }
+        button { cursor: pointer; }
+        ul { list-style: none; }
+        .hide { display: none !important; }
+        h1 { font-size: 24px; font-weight: 700; letter-spacing: -0.02em; }
+        h2 { font-size: 15px; font-weight: 700; margin-bottom: 14px; letter-spacing: -0.01em; }
+        .text-sm { font-size: 13px; color: var(--text-muted); }
+        .text-xs { font-size: 12px; color: var(--text-muted); }
+
+        /* Main layout and entrance animations */
+        @keyframes panelEntrance {
+            from { opacity: 0; transform: translateY(40px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes docEntrance {
+            from { opacity: 0; transform: translateY(40px) scale(0.97); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .app-layout { display: grid; grid-template-columns: 480px 1fr; gap: 24px; height: 100vh; padding: 24px; }
+        
+        .sidebar {
+            display: flex; flex-direction: column;
+            background: var(--bg-panel);
+            border: 1.5px solid var(--border-light);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-md);
+            height: calc(100vh - 48px);
+            overflow: hidden; z-index: 10;
+            transition: box-shadow 0.4s var(--ease-smooth), border-color 0.3s, background-color 0.4s;
+            /* Entrance animation */
+            animation: panelEntrance 0.85s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        .sidebar:hover { box-shadow: 0 20px 64px rgba(0,0,0,0.15); }
+        .sidebar-header { padding: 22px 24px; border-bottom: 1px solid var(--border-light); transition: border-color 0.4s; }
+        .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+        .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 17px; letter-spacing: -0.03em; }
+        .brand svg { transition: transform 0.4s var(--ease-spring); }
+        .brand:hover svg { transform: rotate(15deg) scale(1.1); }
+        .workspace { background: transparent; height: calc(100vh - 48px); overflow-y: auto; overflow-x: hidden; display: flex; justify-content: center; align-items: flex-start; padding: 20px 40px 180px 40px; min-width: 0; }
+        /* The A4 sheet keeps its real size; the frame scales it down to fit the available width */
+        .a4-frame { flex-shrink: 0; position: relative; }
+        .a4-scaler { transform-origin: top left; width: var(--a4-w); }
+
+        .bottom-blur-fade { position: fixed; bottom: 0; left: 0; width: 100%; height: 160px; background: linear-gradient(to top, var(--bg-body) 10%, transparent 100%); pointer-events: none; z-index: 50; transition: background 0.4s; }
+
+        /* Floating navigation */
+        .floating-nav {
+            position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%);
+            background: var(--bg-panel);
+            padding: 8px 10px; border-radius: var(--radius-pill);
+            box-shadow: var(--shadow-float);
+            border: 1.5px solid var(--border-light);
+            display: flex; gap: 4px; z-index: 100;
+            transition: background-color 0.4s, border-color 0.4s;
+            /* Synchronized entrance animation */
+            opacity: 0;
+            animation: floatIn 0.85s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            animation-delay: 0.15s;
+        }
+        @keyframes floatIn {
+            from { opacity: 0; transform: translateX(-50%) translateY(40px) scale(0.95); }
+            to   { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+        }
+        .nav-item {
+            display: flex; align-items: center; gap: 8px;
+            padding: 10px 22px; border-radius: var(--radius-pill);
+            color: var(--text-muted); font-size: 13.5px; font-weight: 600;
+            transition: transform 0.38s var(--ease-spring), box-shadow 0.38s var(--ease-smooth), background 0.25s var(--ease-smooth), color 0.25s var(--ease-smooth);
+            will-change: transform;
+            position: relative; overflow: hidden;
+        }
+        .nav-item::before {
+            content: '';
+            position: absolute; inset: 0; border-radius: inherit;
+            background: radial-gradient(circle at center, rgba(99,102,241,0.13) 0%, transparent 70%);
+            opacity: 0; transition: opacity 0.3s;
+        }
+        .nav-item:hover::before { opacity: 1; }
+        .nav-item:hover {
+            color: var(--text-main); background: var(--bg-soft);
+            transform: scale(1.12) translateY(-4px);
+            box-shadow: 0 10px 28px rgba(0,0,0,0.12), 0 2px 8px rgba(99,102,241,0.1);
+        }
+        .nav-item:active { transform: scale(0.96) translateY(0); transition-duration: 0.1s; }
+        .nav-item.active {
+            background: var(--primary); color: var(--primary-text);
+            box-shadow: 0 6px 24px rgba(0,0,0,0.2);
+            transform: scale(1.03);
+        }
+        .nav-item.active:hover { transform: scale(1.1) translateY(-3px); box-shadow: 0 12px 32px rgba(0,0,0,0.26); }
+        .nav-item svg { transition: transform 0.3s var(--ease-spring); }
+        .nav-item:hover svg { transform: scale(1.2); }
+
+        /* Form controls and buttons */
+        .input-group { margin-bottom: 18px; }
+        .input-group label { display: block; font-size: 11px; font-weight: 700; color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.07em; }
+        .form-control {
+            width: 100%; background: var(--bg-soft);
+            border: 1.5px solid var(--border-light);
+            border-radius: var(--radius-sm); padding: 12px 16px; font-size: 14px;
+            transition: border-color 0.25s var(--ease-smooth), background 0.3s var(--ease-smooth), box-shadow 0.3s var(--ease-smooth), transform 0.3s var(--ease-spring);
+        }
+        .form-control:hover { border-color: var(--border-focus); background: var(--bg-panel); transform: translateY(-1px); }
+        .form-control:focus {
+            border-color: var(--accent); background: var(--bg-panel);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.06), 0 0 0 4px var(--accent-soft);
+            outline: none; transform: translateY(-2px) scale(1.01);
+        }
+        textarea.form-control { min-height: 100px; resize: vertical; }
+
+        .btn {
+            display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+            padding: 10px 20px; border-radius: var(--radius-pill);
+            font-size: 13px; font-weight: 600; letter-spacing: 0.01em;
+            border: 1.5px solid var(--border-light); background: var(--bg-panel);
+            transition: transform 0.38s var(--ease-spring), box-shadow 0.38s var(--ease-smooth), background 0.25s, border-color 0.25s, color 0.25s;
+            will-change: transform; position: relative; overflow: hidden;
+        }
+        .btn::after {
+            content: ''; position: absolute; inset: 0; border-radius: inherit;
+            background: linear-gradient(135deg, rgba(255,255,255,0.12) 0%, transparent 60%);
+            opacity: 0; transition: opacity 0.25s;
+        }
+        .btn:hover::after { opacity: 1; }
+        .btn:hover { background: var(--bg-soft); border-color: var(--border-focus); transform: scale(1.08) translateY(-2px); box-shadow: 0 8px 26px rgba(0,0,0,0.1); }
+        .btn:active { transform: scale(0.97) translateY(0); transition-duration: 0.1s; }
+        
+        .btn-primary { background: var(--primary); color: var(--primary-text); border: none; }
+        .btn-primary:hover { background: var(--primary-hover); color: var(--primary-text); transform: scale(1.09) translateY(-3px); box-shadow: 0 14px 36px rgba(0,0,0,0.24); }
+        
+        .btn-danger { color: var(--danger); background: var(--danger-bg); border: 1.5px solid transparent; }
+        .btn-danger:hover { background: var(--danger); color: #ffffff; transform: scale(1.08) translateY(-3px); box-shadow: 0 12px 28px rgba(239,68,68,0.3); }
+        
+        .btn-icon { padding: 9px; border-radius: 50%; }
+        .btn svg { width: 16px; height: 16px; transition: transform 0.3s var(--ease-spring); }
+        .btn:hover svg { transform: scale(1.1); }
+
+        .controls-row { display: flex; gap: 8px; flex-wrap: wrap; }
+        .toggle-switch {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 14px 18px; background: var(--bg-soft);
+            border: 1.5px solid var(--border-light); border-radius: var(--radius-sm);
+            cursor: pointer; font-size: 14px; font-weight: 500;
+            transition: background 0.3s, border-color 0.3s, transform 0.35s var(--ease-spring), box-shadow 0.3s;
+        }
+        .toggle-switch:hover { background: var(--bg-panel); border-color: var(--accent); transform: translateX(4px) scale(1.01); box-shadow: 0 8px 24px rgba(0,0,0,0.08); }
+        .scroll-area { flex: 1; overflow-y: auto; padding: 24px; position: relative; }
+
+        /* Interactive cards */
+        .card {
+            background: var(--bg-panel); border: 1.5px solid var(--border-light);
+            border-radius: var(--radius-md); box-shadow: var(--shadow-sm);
+            margin-bottom: 18px; position: relative; z-index: 1;
+            transition: box-shadow 0.4s var(--ease-smooth), border-color 0.4s, transform 0.4s var(--ease-spring), background-color 0.4s;
+        }
+        .card:hover { box-shadow: 0 16px 40px rgba(0,0,0,0.12); border-color: var(--border-focus); transform: scale(1.02) translateY(-2px); z-index: 5; }
+
+        .template-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 28px; }
+        .template-btn {
+            padding: 16px 14px; border-radius: 16px;
+            border: 1.5px solid var(--border-light); background: var(--bg-soft); text-align: left;
+            transition: transform 0.42s var(--ease-spring), box-shadow 0.42s var(--ease-smooth), border-color 0.3s, background 0.3s;
+            will-change: transform;
+        }
+        .template-btn strong { display: block; font-size: 13px; margin-bottom: 4px; }
+        .template-btn span { font-size: 11.5px; color: var(--text-muted); }
+        .template-btn:hover { border-color: var(--accent); transform: scale(1.07) translateY(-5px); box-shadow: 0 16px 44px rgba(99,102,241,0.22), 0 4px 12px rgba(0,0,0,0.08); background: var(--bg-panel); }
+        .template-btn.active { border-color: var(--accent); background: var(--bg-panel); box-shadow: 0 0 0 3px var(--accent-soft), 0 8px 28px rgba(99,102,241,0.14); }
+        .template-btn.active:hover { transform: scale(1.05) translateY(-3px); }
+
+        .card-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 18px; border-bottom: 1px solid var(--border-light); transition: border-color 0.4s; }
+        .card-body { padding: 18px; }
+
+        .photo-tool { display: grid; grid-template-columns: 140px 1fr; gap: 20px; align-items: start; }
+        .cropper-frame {
+            width: 140px; height: 140px; border-radius: var(--radius-md); touch-action: none;
+            border: 2px dashed var(--border-focus); background: var(--bg-soft);
+            position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; cursor: grab;
+            transition: border-color 0.3s, box-shadow 0.35s, transform 0.4s var(--ease-spring);
+        }
+        .cropper-frame:hover { border-color: var(--accent); transform: scale(1.06); box-shadow: 0 12px 32px rgba(99,102,241,0.18); }
+        .cropper-frame:active { cursor: grabbing; border-color: var(--accent); transform: scale(1.02); }
+        .cropper-frame img { position: absolute; width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
+        
+        .slider-control { width: 100%; margin-top: 6px; appearance: none; height: 6px; background: var(--border-light); border-radius: 4px; outline: none; transition: background 0.3s; }
+        .slider-control::-webkit-slider-thumb { appearance: none; width: 18px; height: 18px; border-radius: 50%; background: var(--primary); cursor: pointer; transition: transform 0.3s var(--ease-spring), box-shadow 0.3s; }
+        .slider-control::-webkit-slider-thumb:hover { transform: scale(1.4); box-shadow: 0 6px 16px rgba(0,0,0,0.3); }
+        .slider-control::-moz-range-thumb { width: 18px; height: 18px; border: none; border-radius: 50%; background: var(--primary); cursor: pointer; }
+
+        .hint-box { padding: 12px 16px; background: transparent; border-radius: 10px; border: 1.5px solid var(--border-light); color: var(--text-muted); font-size: 11.5px; display: flex; align-items: center; gap: 0; margin-bottom: 20px; opacity: 0.8; transition: border-color 0.4s; }
+        
+        /* Tab navigation animations */
+        .tab-panel { animation: none; }
+        .tab-panel.slide-in-left { animation: slideInLeft 0.44s var(--ease-out) both; }
+        .tab-panel.slide-in-right { animation: slideInRight 0.44s var(--ease-out) both; }
+        @keyframes slideInLeft { from { opacity: 0; transform: translateX(-32px); filter: blur(2px); } to { opacity: 1; transform: translateX(0); filter: blur(0); } }
+        @keyframes slideInRight { from { opacity: 0; transform: translateX(32px); filter: blur(2px); } to { opacity: 1; transform: translateX(0); filter: blur(0); } }
+
+        /* CV rendering and A4 sheet */
+        .a4-page {
+            width: var(--a4-w); height: var(--a4-h); background: #ffffff; color: #111827;
+            box-shadow: 0 32px 100px rgba(0,0,0,0.12), 0 8px 24px rgba(0,0,0,0.06);
+            overflow: hidden; position: relative; z-index: 10; transition: box-shadow 0.4s;
+            
+            /* Sheet entrance animation */
+            opacity: 0;
+            animation: docEntrance 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            animation-delay: 0.2s;
+        }
+        .a4-page:hover { box-shadow: 0 40px 120px rgba(0,0,0,0.16), 0 12px 32px rgba(0,0,0,0.08); }
+
+        .resume {
+            --rs-font: 13.2px; --rs-line: 1.34; --rs-gap: 14px; --rs-margin: 16mm; --rs-sidebar: 28%;
+            --rs-name: 32px; --rs-role: 15px;
+            --rs-accent: #111827; --rs-border: #cbd5e1; --rs-muted: #4b5563; --rs-soft: #f8fafc; --rs-text: #1f2937;
+            font-family: var(--font-ui); font-size: var(--rs-font); line-height: var(--rs-line); color: var(--rs-text);
+            width: 100%; height: 100%; padding: var(--rs-margin); display: flex; flex-direction: column; gap: var(--rs-gap);
+        }
+
+        .resume.t-minimal .rs-title { border-bottom: 1px solid var(--rs-border); }
+        .resume.t-compact .rs-title { border-bottom: 2px solid var(--rs-accent); }
+        .resume.t-modern { --rs-accent: #0f766e; }
+        .resume.t-modern .rs-title { border-bottom: none; border-left: 4px solid var(--rs-accent); padding-left: 10px; color: var(--rs-accent); background: var(--rs-soft); padding-top: 4px; padding-bottom: 4px; }
+        
+        /* Classic (Executive) template */
+        .resume.t-executive { 
+            --rs-accent: #1e293b; 
+            font-family: var(--font-serif); 
+        }
+        .resume.t-executive .rs-top { 
+            display: flex; flex-direction: column; align-items: center; text-align: center; 
+            border-bottom: 2px solid var(--rs-accent); 
+            padding-bottom: 12px; margin-bottom: 10px; gap: 8px;
+        }
+        .resume.t-executive .rs-photo { order: -1; margin-bottom: 4px; }
+        .resume.t-executive .rs-name { font-weight: 700; color: var(--rs-accent); letter-spacing: 1px; text-transform: uppercase; font-size: 32px; }
+        .resume.t-executive .rs-role { font-style: normal; font-weight: 500; color: var(--rs-muted); letter-spacing: 2px; text-transform: uppercase; font-size: 14px; }
+        .resume.t-executive .rs-title { border-bottom: 1px solid var(--rs-border); color: var(--rs-accent); text-align: left; padding-bottom: 4px; letter-spacing: 1px; text-transform: uppercase; font-weight: bold; }
+        .resume.t-executive .rs-title::after { display: none; }
+
+        .resume.t-tech { --rs-accent: #0f4bcf; }
+        .resume.t-tech .rs-title { font-family: var(--font-mono); border-bottom: 1px solid var(--rs-border); letter-spacing: 0; }
+        .resume.t-tech .rs-title::before { content: '/> '; color: var(--rs-accent); font-weight: bold; }
+        .resume.t-creative { --rs-accent: #7c3aed; }
+        .resume.t-creative .rs-top { background: linear-gradient(135deg, var(--rs-soft) 0%, #ffffff 100%); padding: 24px; border-radius: 20px; border: 1px solid var(--rs-border); margin-bottom: 10px; }
+        .resume.t-creative .rs-title { border-bottom: none; color: var(--rs-accent); text-transform: capitalize; font-size: 1.15em; }
+        .resume.t-creative .rs-chip { background: #ffffff; border: 1px solid var(--rs-accent); color: var(--rs-accent); border-radius: 8px; }
+
+        .resume.no-photo .rs-top { grid-template-columns: 1fr; }
+        .resume .rs-top { display: grid; grid-template-columns: 1fr auto; gap: 20px; align-items: start; flex-shrink: 0; }
+        .resume .rs-name { font-size: var(--rs-name); line-height: 1.1; font-weight: 800; letter-spacing: -0.03em; color: var(--rs-accent); }
+        .resume .rs-role { font-size: var(--rs-role); color: var(--rs-accent); font-weight: 600; margin-top: 4px; }
+        .resume .rs-summary { margin-top: 10px; color: var(--rs-text); }
+        .resume .rs-photo { overflow: hidden; background: var(--rs-soft); border: 1px solid var(--rs-border); position: relative; flex-shrink: 0; }
+        .resume .rs-photo.shape-square { border-radius: 8px; }
+        .resume .rs-photo.shape-rounded { border-radius: 24px; }
+        .resume .rs-photo.shape-circle { border-radius: 50%; }
+        .resume .rs-photo img { position: absolute; width: 100%; height: 100%; object-fit: cover; }
+        .resume .rs-body { display: grid; grid-template-columns: var(--rs-sidebar) 1fr; gap: 32px; flex: 1; min-height: 0; }
+        .resume.single-col .rs-body { grid-template-columns: 1fr; }
+        .resume .rs-col { display: flex; flex-direction: column; gap: var(--rs-gap); min-width: 0; min-height: 50px; border-radius: 8px; transition: background 0.2s; }
+
+        /* Draggable sections in the document */
+        .resume .draggable-section {
+            position: relative; padding: 4px 0;
+            border-radius: 6px;
+            transition: background 0.3s var(--ease-smooth), opacity 0.25s var(--ease-smooth), box-shadow 0.2s;
+            will-change: opacity; isolation: isolate;
+        }
+        .resume .draggable-section:hover { cursor: grab; background: rgba(99,102,241,0.04); }
+        .resume .draggable-section:active { cursor: grabbing; }
+        .resume .draggable-section.dragging { opacity: 0.38; background: transparent !important; }
+        .resume .drop-indicator-top { box-shadow: inset 0 3px 0 0 var(--accent), 0 -1px 8px rgba(99,102,241,0.35); border-radius: 6px; }
+        .resume .drop-indicator-bottom { box-shadow: inset 0 -3px 0 0 var(--accent), 0 1px 8px rgba(99,102,241,0.35); border-radius: 6px; }
+        .resume .rs-col.drag-over-empty { background: rgba(99,102,241,0.05); box-shadow: inset 0 0 0 2px var(--accent); }
+        
+        .resume .rs-block { display: flex; flex-direction: column; gap: 8px; min-width: 0; pointer-events: none; }
+        .resume .rs-block > * { pointer-events: auto; }
+        .resume .rs-title { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.16em; font-weight: 800; color: var(--rs-accent); padding-bottom: 5px; }
+        .resume .rs-kv { display: flex; flex-direction: column; gap: 7px; }
+        .resume .rs-line { display: flex; gap: 8px; align-items: flex-start; word-wrap: break-word; }
+        .resume .rs-prefix { color: var(--rs-accent); font-weight: 700; display: inline-flex; justify-content: center; min-width: 16px; }
+        .resume .rs-entry { display: flex; flex-direction: column; gap: 5px; }
+        
+        /* Separators between entries (applied when "Line separators" is enabled) */
+        .resume:not(.no-separators) .rs-entry + .rs-entry {
+            margin-top: calc(var(--rs-gap) * 0.7);
+            padding-top: calc(var(--rs-gap) * 0.7);
+            border-top: 1px solid var(--rs-border);
+        }
+
+        /* Keep date and title aligned (prevents line wrapping) */
+        .resume .rs-entry-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+        .resume .rs-entry-content { flex: 1 1 auto; min-width: 0; }
+        .resume .rs-entry-title { font-weight: 700; color: #111827; }
+        .resume .rs-entry-sub { color: var(--rs-muted); font-size: 0.95em; line-height: 1.35; }
+        .resume .rs-entry-meta { 
+            text-align: right; 
+            flex-shrink: 0; /* Prevents the date from shrinking or wrapping to the next line */
+            white-space: nowrap; 
+            color: var(--rs-muted); 
+            font-size: 0.9em; 
+            font-weight: 500; 
+            padding-top: 1px;
+        }
+        
+        .resume .rs-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+        .resume .rs-chip { padding: 4px 10px; border-radius: 6px; background: var(--rs-soft); border: 1px solid var(--rs-border); font-size: 0.9em; font-weight: 500; max-width: 100%; word-wrap: break-word; line-height: 1.35; }
+        .resume ul { margin: 0; padding-left: 18px; }
+        .resume li { margin: 3px 0; }
+
+        /* Responsive layout: stack the editor above the preview on narrow screens */
+        @media (max-width: 1000px) {
+            body { height: auto; overflow: auto; }
+            .app-layout { grid-template-columns: 1fr; height: auto; padding: 16px; gap: 16px; }
+            .sidebar { height: auto; max-height: none; overflow: visible; }
+            .sidebar:hover { box-shadow: var(--shadow-md); }
+            .scroll-area { overflow: visible; }
+            .workspace { height: auto; overflow: visible; padding: 0 0 140px 0; }
+            .bottom-blur-fade { height: 110px; }
+        }
+        @media (max-width: 600px) {
+            .floating-nav { bottom: 16px; padding: 6px; }
+            .nav-item { padding: 10px 14px; }
+            .nav-item span { display: none; }
+            .photo-tool { grid-template-columns: 1fr; }
+            .card:hover, .template-btn:hover { transform: none; }
+        }
+
+        @media print {
+            html, body { background: #fff; padding: 0; margin: 0; height: auto; overflow: visible; }
+            .sidebar, .floating-nav, .bottom-blur-fade { display: none !important; }
+            .app-layout { display: block; padding: 0; height: auto; }
+            .workspace { padding: 0; border: none; box-shadow: none; background: #fff; height: auto; overflow: visible; display: block; }
+            .a4-frame { width: auto !important; height: auto !important; }
+            .a4-scaler { transform: none !important; }
+            .a4-page { box-shadow: none; margin: 0; width: 210mm; height: 297mm; animation: none !important; opacity: 1 !important; break-after: avoid; page-break-after: avoid; }
+            .a4-page, .a4-page * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .resume .draggable-section:hover { background: transparent; cursor: default; }
+            @page { size: A4; margin: 0; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-layout">
+    <aside class="sidebar">
+        <header class="sidebar-header">
+            <div class="header-top">
+                <div class="brand">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+                    MonolithCV
+                </div>
+                <div class="controls-row">
+                    <button class="btn btn-icon" data-i18n-title="backToMenu" title="Back to menu" onclick="window.location.href='index.html'">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                    </button>
+                    <button class="btn btn-icon" id="langToggle" title="Language">EN</button>
+                    <button class="btn btn-icon" id="themeToggle" title="Theme">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                    </button>
+                </div>
+            </div>
+            <div class="controls-row">
+                <button class="btn btn-icon" id="btnUndo" data-i18n-title="undo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg></button>
+                <button class="btn btn-icon" id="btnRedo" data-i18n-title="redo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 7v6h-6"/><path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7"/></svg></button>
+                <div style="flex:1"></div>
+                <button class="btn btn-primary" id="btnPrint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg><span data-i18n="exportPdf">Export PDF</span></button>
+            </div>
+        </header>
+
+        <div class="scroll-area">
+            <section class="tab-panel" id="panel-content">
+                <div class="card" style="padding:18px;">
+                    <h2 data-i18n="mainProfile">Main Profile</h2>
+                    <div class="input-group">
+                        <label data-i18n="fullName">Full Name</label>
+                        <input type="text" class="form-control" data-bind="basics.name" />
+                    </div>
+                    <div class="input-group">
+                        <label data-i18n="jobTitle">Job Title</label>
+                        <input type="text" class="form-control" data-bind="basics.title" />
+                    </div>
+                    <div class="input-group">
+                        <label data-i18n="summary">Professional Summary</label>
+                        <textarea class="form-control" data-bind="basics.summary"></textarea>
+                    </div>
+                </div>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:24px; margin-bottom:16px;">
+                    <h2 style="margin:0" data-i18n="sections">Sections</h2>
+                    <button class="btn btn-primary btn-icon" id="btnAddSection" data-i18n-title="addSection" title="Add Section"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+                </div>
+                <div class="hint-box">
+                    <span data-i18n="dragHint">You can reorder sections by dragging and dropping them directly on the preview document.</span>
+                </div>
+                <div id="sectionListContainer"></div>
+            </section>
+
+            <section class="tab-panel hide" id="panel-design">
+                <h2 data-i18n="templates">Visual Templates</h2>
+                <div class="template-grid" id="templateGridNode"></div>
+                <h2 data-i18n="documentSettings">Document Settings</h2>
+                <div class="card" style="padding:18px; margin-bottom:24px;">
+                    <div class="input-group" style="margin-bottom: 20px;">
+                        <label data-i18n="accentColor">Accent Color</label>
+                        <div style="display:flex; gap:10px; align-items:center;">
+                            <input type="color" id="accentColorPicker" style="width:60px; height:40px; padding:0; border-radius:8px; cursor:pointer; border:1px solid var(--border-light);">
+                            <button class="btn btn-icon" id="btnResetColor" data-i18n-title="reset"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></button>
+                        </div>
+                    </div>
+                    <label class="toggle-switch">
+                        <span data-i18n="showSidebar">Two-column layout</span>
+                        <input type="checkbox" id="uiSidebarToggle">
+                    </label>
+                    <div style="height:12px"></div>
+                    <label class="toggle-switch">
+                        <span data-i18n="showSeparators">Line separators</span>
+                        <input type="checkbox" id="uiSeparatorsToggle">
+                    </label>
+                </div>
+                <h2 data-i18n="autoLayout">Smart A4 Layout</h2>
+                <div class="card" style="padding:18px;">
+                    <div class="input-group">
+                        <label data-i18n="fitMode">Fit Mode</label>
+                        <select id="fitModeSelect" class="form-control">
+                            <option value="auto" data-i18n="modeAuto">Automatic (Balanced)</option>
+                            <option value="readability" data-i18n="modeRead">Prioritize Readability</option>
+                            <option value="condense" data-i18n="modeCondense">Prioritize Space</option>
+                        </select>
+                    </div>
+                    <div style="display: flex; gap: 8px; align-items: flex-start; margin-top: 12px; font-size: 12px; color: var(--text-muted);">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0; width:16px; height:16px; margin-top:2px;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                        <span data-i18n="fitInfo">The engine calculates font sizes and margins in real-time to fit content exactly into one A4 page.</span>
+                    </div>
+                </div>
+            </section>
+
+            <section class="tab-panel hide" id="panel-photo">
+                <h2 data-i18n="profilePhoto">Profile Photo</h2>
+                <div class="card" style="padding:0; margin-bottom:16px;">
+                    <label class="toggle-switch" style="border:none; padding:16px; background:transparent;">
+                        <span data-i18n="enablePhoto">Include photo in document</span>
+                        <input type="checkbox" id="photoEnabledToggle">
+                    </label>
+                </div>
+                <div class="card photo-tool" style="padding:18px;">
+                    <div class="cropper-frame" id="photoCropperArea">
+                        <span class="text-xs" id="photoPlaceholder" data-i18n="noPhoto">No photo uploaded</span>
+                        <img id="photoPreviewImg" alt="" style="display:none;" />
+                    </div>
+                    <div>
+                        <div class="controls-row" style="margin-bottom: 16px;">
+                            <button class="btn btn-primary" id="btnUploadPhoto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> <span data-i18n="upload">Upload</span></button>
+                            <button class="btn btn-danger btn-icon" id="btnRemovePhoto" data-i18n-title="remove"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
+                            <input class="hide" id="photoInputFile" type="file" accept="image/*" />
+                        </div>
+                        <label class="text-xs" data-i18n="shape" style="display:block; margin-bottom:8px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em;">Geometry</label>
+                        <div class="controls-row">
+                            <button class="btn btn-icon" data-shape="square"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/></svg></button>
+                            <button class="btn btn-icon" data-shape="rounded"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="6" ry="6"/></svg></button>
+                            <button class="btn btn-icon" data-shape="circle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg></button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card" style="padding:18px; margin-top:16px;">
+                    <label class="text-xs" style="display:block; font-weight:700; margin-bottom:10px; text-transform:uppercase; letter-spacing:0.06em;" data-i18n="photoSize">Photo Size</label>
+                    <input type="range" class="slider-control" id="photoSizeSlider" min="60" max="200" step="2" />
+                    <div style="text-align:right; font-size:12px; margin-top:4px; color:var(--text-muted);"><span id="photoSizeVal">130</span>px</div>
+                    <label class="text-xs" style="display:block; font-weight:700; margin:14px 0 10px; text-transform:uppercase; letter-spacing:0.06em;" data-i18n="photoZoom">Zoom</label>
+                    <input type="range" class="slider-control" id="photoZoomSlider" min="0.5" max="4" step="0.05" />
+                </div>
+                <div class="hint-box" style="margin-top:16px;">
+                    <span data-i18n="photoInstructions">Interactive editing: Click (or touch) and drag to reposition. Use the mouse wheel or the zoom slider to zoom.</span>
+                </div>
+            </section>
+
+            <section class="tab-panel hide" id="panel-data">
+                <h2 data-i18n="dataManagement">Data Management</h2>
+                <div class="hint-box"><span data-i18n="dataPrivacy">All data is stored locally in your browser. Nothing is uploaded to any server.</span></div>
+                <div class="controls-row" style="margin-bottom:24px;">
+                    <button class="btn btn-primary" id="btnExportData"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg><span data-i18n="exportData">Export Backup</span></button>
+                    <button class="btn" id="btnImportData"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg><span data-i18n="importData">Import Backup</span></button>
+                    <input class="hide" id="importFileInput" type="file" accept=".json" />
+                </div>
+                <h2 data-i18n="dangerZone">Danger Zone</h2>
+                <div class="card" style="padding:18px; border-color: var(--danger);">
+                    <button class="btn btn-danger" id="btnFactoryReset" style="width:100%;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg><span data-i18n="factoryReset">Factory Reset</span></button>
+                </div>
+            </section>
+        </div>
+    </aside>
+
+    <div class="workspace">
+        <div class="a4-frame" id="a4Frame">
+            <div class="a4-scaler" id="a4Scaler">
+                <div class="a4-page">
+                    <div class="resume" id="resumeNode"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="bottom-blur-fade"></div>
+
+<nav class="floating-nav">
+    <button class="nav-item active" data-target="panel-content" data-order="0">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+        <span data-i18n="navContent">Content</span>
+    </button>
+    <button class="nav-item" data-target="panel-design" data-order="1">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M5.34 18.66l-1.41 1.41M4.93 4.93l1.41 1.41M18.66 18.66l1.41 1.41M2 12h2M20 12h2M12 2v2M12 20v2"/></svg>
+        <span data-i18n="navDesign">Layout</span>
+    </button>
+    <button class="nav-item" data-target="panel-photo" data-order="2">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        <span data-i18n="navPhoto">Media</span>
+    </button>
+    <button class="nav-item" data-target="panel-data" data-order="3">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+        <span data-i18n="navData">Data</span>
+    </button>
+</nav>
+
+<script>
+/**
+ * MonolithCV v2.5.0
+ * Single-page A4 CV builder. All data is kept in the browser's localStorage.
+ */
+const MonolithCV = (() => {
+    
+    // Keys shared with index.html
+    const STORAGE_KEY = 'monolith_cv_release_2_5_0';
+    const THEME_KEY = 'monolith_theme';
+    const LANG_KEY = 'monolith_lang';
+    const MAX_HISTORY = 40;
+    // Size of the photo cropper in the editor; offsets are stored relative to it
+    const CROPPER_SIZE = 140;
+    // Uploaded photos are downscaled so they fit within the localStorage quota
+    const PHOTO_MAX_PX = 1000;
+
+    const store = {
+        get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+        set(k, v) { try { localStorage.setItem(k, v); return true; } catch (e) { return false; } },
+        remove(k) { try { localStorage.removeItem(k); } catch (e) {} }
+    };
+
+    const cvTemplates = [
+        { id: 'minimal', name: 'Minimalist', desc: 'Balanced & Clean', nameEs: 'Minimalista', descEs: 'Equilibrada y Limpia', cls: 't-minimal' },
+        { id: 'compact', name: 'Compact', desc: 'High Density', nameEs: 'Compacta', descEs: 'Alta Densidad', cls: 't-compact' },
+        { id: 'modern', name: 'Modern', desc: 'Corporate Accent', nameEs: 'Moderna', descEs: 'Acento Corporativo', cls: 't-modern' },
+        { id: 'executive', name: 'Classic', desc: 'Elegant Serif', nameEs: 'Clásica', descEs: 'Serif Elegante', cls: 't-executive' },
+        { id: 'tech', name: 'Tech / IT', desc: 'Clean Terminal', nameEs: 'Tech / IT', descEs: 'Terminal Limpia', cls: 't-tech' },
+        { id: 'creative', name: 'Creative', desc: 'Gradient Header', nameEs: 'Creativa', descEs: 'Cabecera Degradada', cls: 't-creative' }
+    ];
+
+    function getDefaultTemplateColor(tplId) {
+        return tplId === 'minimal' ? '#111827' : tplId === 'compact' ? '#111827' : tplId === 'modern' ? '#0f766e' : tplId === 'executive' ? '#1e293b' : tplId === 'tech' ? '#0f4bcf' : tplId === 'creative' ? '#7c3aed' : '#111827';
+    }
+
+    const dom = {
+        get: (s) => document.querySelector(s),
+        getAll: (s) => document.querySelectorAll(s),
+        on: (el, ev, fn) => el.addEventListener(ev, fn)
+    };
+
+    function escapeHtml(s) {
+        if (!s) return '';
+        return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function resolvePath(obj, path) {
+        return path.split('.').reduce((acc, k) => acc && acc[k] !== undefined ? acc[k] : '', obj);
+    }
+
+    function setPath(obj, path, val) {
+        const keys = path.split('.');
+        let cur = obj;
+        keys.slice(0,-1).forEach(k => { if (!cur[k]) cur[k]={}; cur=cur[k]; });
+        cur[keys[keys.length-1]] = val;
+    }
+
+    // Application state and history management (undo/redo)
+    let state, history = [], historyIdx = -1;
+
+    const defaultState = () => ({
+        template: 'minimal',
+        ui: { sidebar: true, separators: true, fitMode: 'auto', accentColor: '' },
+        photo: { enabled: false, data: null, x: 0, y: 0, scale: 1, shape: 'rounded', size: 130 },
+        basics: { name: '', title: '', summary: '' },
+        sections: []
+    });
+
+    // Fills in missing fields so partial or older backups do not break rendering
+    function normalizeState(raw) {
+        if (!raw || typeof raw !== 'object' || !Array.isArray(raw.sections)) return null;
+        const def = defaultState();
+        const s = {
+            template: cvTemplates.some(t => t.id === raw.template) ? raw.template : def.template,
+            ui: Object.assign(def.ui, raw.ui),
+            photo: Object.assign(def.photo, raw.photo),
+            basics: Object.assign(def.basics, raw.basics),
+            sections: raw.sections.filter(sec => sec && typeof sec === 'object').map((sec, i) => ({
+                id: sec.id ? String(sec.id) : 'sec_' + Date.now() + '_' + i,
+                type: ['contact', 'languages', 'skills', 'experience', 'education'].includes(sec.type) ? sec.type : 'experience',
+                column: sec.column === 'side' ? 'side' : 'main',
+                title: sec.title || '',
+                visible: sec.visible !== false,
+                priority: typeof sec.priority === 'number' ? sec.priority : i + 1,
+                items: Array.isArray(sec.items) ? sec.items.filter(it => it && typeof it === 'object') : []
+            }))
+        };
+        // Theme used to live in the CV state; it is now a global preference
+        delete s.ui.theme;
+        return s;
+    }
+
+    function loadState() {
+        let saved = null;
+        try { saved = normalizeState(JSON.parse(store.get(STORAGE_KEY))); } catch(e) {}
+        if (saved) { state = saved; } else { state = defaultState(); initDefaults(); }
+    }
+
+    let saveFailWarned = false;
+    function saveState(addHistory = false) {
+        const snap = JSON.stringify(state);
+        if (addHistory && history[historyIdx] !== snap) {
+            history = history.slice(0, historyIdx + 1);
+            history.push(snap);
+            if (history.length > MAX_HISTORY) history.shift();
+            historyIdx = history.length - 1;
+        }
+        if (!store.set(STORAGE_KEY, snap) && !saveFailWarned) {
+            saveFailWarned = true;
+            alert(t('alertSaveFail'));
+        }
+    }
+
+    function undo() { if (historyIdx > 0) { historyIdx--; state = JSON.parse(history[historyIdx]); syncUI(); RenderEngine.build(); } }
+    function redo() { if (historyIdx < history.length - 1) { historyIdx++; state = JSON.parse(history[historyIdx]); syncUI(); RenderEngine.build(); } }
+
+    function initDefaults() {
+        const lang = currentLang;
+        const p = pMap[lang];
+        state.basics = { name: p.name, title: p.title, summary: p.sum };
+        state.sections = [
+            { id: 'sec_contact', type: 'contact', column: 'side', title: p.contact, visible: true, priority: 1, items: [{ icon: '✉', label: p.email, value: p.email },{ icon: '☎', label: p.phone, value: p.phone }] },
+            { id: 'sec_lang', type: 'languages', column: 'side', title: p.lang, visible: true, priority: 2, items: [{ icon: '', label: p.l1, value: p.l1v },{ icon: '', label: p.l2, value: p.l2v }] },
+            { id: 'sec_skills', type: 'skills', column: 'side', title: p.skills, visible: true, priority: 3, items: [{ value: p.sk }] },
+            { id: 'sec_exp', type: 'experience', column: 'main', title: p.exp, visible: true, priority: 4, items: [{ title: p.job, subtitle: p.comp, meta: p.date, location: p.loc, bullets: p.bull }] },
+            { id: 'sec_edu', type: 'experience', column: 'main', title: p.edu, visible: true, priority: 5, items: [{ title: p.eduTitle, subtitle: p.eduSub, meta: p.eduDate, location: p.eduLoc, bullets: '' }] }
+        ];
+    }
+
+    const pMap = {
+        en: { contact: 'Contact', lang: 'Languages', edu: 'Education', skills: 'Skills', exp: 'Professional Experience', name: 'Your Name', title: 'Your Professional Title', sum: 'This is a placeholder for your professional summary. Briefly describe your experience, key skills, and what you bring to the table.', email: 'youremail@example.com', phone: '+1 234 567 890', l1: 'English', l1v: 'Native', l2: 'Spanish', l2v: 'Fluent', eduTitle: 'Your Degree / Major', eduSub: 'University Name', eduDate: '2010 - 2014', eduLoc: 'City, Country', job: 'Your Job Position', comp: 'Company Name', date: '2020 - Present', loc: 'City, Country', bull: 'Describe your responsibilities here.\nAdd another key achievement here.', sk: 'Skill 1, Skill 2, Skill 3, Skill 4' },
+        es: { contact: 'Contacto', lang: 'Idiomas', edu: 'Educación', skills: 'Habilidades', exp: 'Experiencia Profesional', name: 'Tu Nombre', title: 'Tu Título Profesional', sum: 'Este es un texto de ejemplo para tu resumen profesional. Describe brevemente tu experiencia, habilidades clave y lo que puedes aportar.', email: 'tucorreo@ejemplo.com', phone: '+34 600 000 000', l1: 'Inglés', l1v: 'Nativo', l2: 'Español', l2v: 'Fluido', eduTitle: 'Tu Grado / Titulación', eduSub: 'Nombre de la Universidad', eduDate: '2010 - 2014', eduLoc: 'Ciudad, País', job: 'Tu Puesto de Trabajo', comp: 'Nombre de la Empresa', date: '2020 - Presente', loc: 'Ciudad, País', bull: 'Aquí debes describir tus responsabilidades.\nAñade otro logro importante aquí.', sk: 'Habilidad 1, Habilidad 2, Habilidad 3, Habilidad 4' }
+    };
+
+    const dict = {
+        en: { mainProfile: 'Main Profile', fullName: 'Full Name', jobTitle: 'Job Title', summary: 'Professional Summary', sections: 'CV Sections', templates: 'Visual Templates', autoLayout: 'Smart A4 Layout', fitMode: 'Fit Optimization', modeAuto: 'Automatic (Balanced)', modeRead: 'Prioritize Readability', modeCondense: 'Prioritize Space', fitInfo: 'The engine calculates font sizes and margins in real-time to fit content exactly into one A4 page.', documentSettings: 'Document Settings', showSidebar: 'Two-column layout', showSeparators: 'Line separators', accentColor: 'Accent Color', reset: 'Reset', profilePhoto: 'Profile Photo', enablePhoto: 'Include photo in document', noPhoto: 'No photo uploaded', upload: 'Upload', shape: 'Geometry', photoSize: 'Photo Size', photoInstructions: 'Interactive editing: Click (or touch) and drag to reposition. Use the mouse wheel or the zoom slider to zoom.', dataManagement: 'Data Management', dataPrivacy: 'All data is stored locally in your browser. Nothing is uploaded to any server.', photoZoom: 'Zoom', exportData: 'Export Backup', importData: 'Import Backup', dangerZone: 'Danger Zone', factoryReset: 'Factory Reset', exportPdf: 'Export PDF', navContent: 'Content', navDesign: 'Layout', navPhoto: 'Media', navData: 'Data', itemTitle: 'Title', itemSubtitle: 'Subtitle', itemMeta: 'Date/Meta', itemLocation: 'Location', itemBullets: 'Description (Bullets)', itemIcon: 'Icon', itemLabel: 'Label', itemValue: 'Value', itemSkills: 'Skills (comma separated)', btnDup: 'Duplicate', btnDel: 'Delete', btnAdd: 'Add Item', toggleVis: 'Visible', promptTitle: 'Section Title:', alertJson: 'Invalid JSON file.', confirmReset: 'Wipe all data and restore factory defaults?', styleVis: 'Visual Style', stContact: 'Icon List', stExp: 'Standard Entries', stSkill: 'Tags / Chips', stLang: 'Compact Text', dragHint: 'You can reorder sections by dragging and dropping them directly on the preview document.', undo: 'Undo', redo: 'Redo', remove: 'Remove', backToMenu: 'Back to menu', addSection: 'Add Section', newSection: 'New Section', alertSaveFail: 'Your changes could not be saved in this browser (storage is full or disabled). Export a backup to avoid losing data.', alertImage: 'The image could not be loaded.' },
+        es: { mainProfile: 'Perfil Principal', fullName: 'Nombre Completo', jobTitle: 'Cargo Profesional', summary: 'Resumen Profesional', sections: 'Secciones del CV', templates: 'Plantillas Visuales', autoLayout: 'Ajuste Inteligente A4', fitMode: 'Modo de Optimización', modeAuto: 'Automático (Equilibrado)', modeRead: 'Priorizar Legibilidad', modeCondense: 'Priorizar Espacio', fitInfo: 'El motor calcula fuentes y márgenes en tiempo real para empaquetar el contenido exactamente en una hoja A4.', documentSettings: 'Configuración Visual', showSidebar: 'Diseño a dos columnas', showSeparators: 'Separadores de línea', accentColor: 'Color de Acento', reset: 'Restablecer', profilePhoto: 'Fotografía', enablePhoto: 'Incluir foto en el documento', noPhoto: 'Sin fotografía', upload: 'Subir', shape: 'Geometría', photoSize: 'Tamaño de Foto', photoInstructions: 'Edición interactiva: Haz clic (o toca) y arrastra para mover. Usa la rueda del ratón o el control de zoom para acercar/alejar.', dataManagement: 'Gestión de Datos', dataPrivacy: 'Tus datos se guardan localmente en el navegador. No se sube nada a ningún servidor.', photoZoom: 'Zoom', exportData: 'Exportar Datos', importData: 'Importar Datos', dangerZone: 'Zona de Peligro', factoryReset: 'Restablecer Fábrica', exportPdf: 'Exportar PDF', navContent: 'Contenido', navDesign: 'Diseño', navPhoto: 'Medios', navData: 'Datos', itemTitle: 'Título', itemSubtitle: 'Subtítulo', itemMeta: 'Fecha/Meta', itemLocation: 'Ubicación', itemBullets: 'Descripción (Viñetas)', itemIcon: 'Icono', itemLabel: 'Etiqueta', itemValue: 'Valor', itemSkills: 'Habilidades (separadas por coma)', btnDup: 'Duplicar', btnDel: 'Eliminar', btnAdd: 'Añadir elemento', toggleVis: 'Visible', promptTitle: 'Título de la sección:', alertJson: 'Archivo JSON inválido.', confirmReset: '¿Borrar todos los datos y restaurar de fábrica?', styleVis: 'Estilo Visual', stContact: 'Lista con Iconos', stExp: 'Entradas Estándar', stSkill: 'Etiquetas (Chips)', stLang: 'Lista Compacta', dragHint: 'Puedes reordenar las secciones arrastrándolas y soltándolas directamente sobre la vista previa del documento.', undo: 'Deshacer', redo: 'Rehacer', remove: 'Eliminar', backToMenu: 'Volver al menú', addSection: 'Añadir sección', newSection: 'Nueva sección', alertSaveFail: 'Tus cambios no se pudieron guardar en este navegador (almacenamiento lleno o desactivado). Exporta una copia de seguridad para no perder datos.', alertImage: 'No se pudo cargar la imagen.' }
+    };
+
+    let currentLang = store.get(LANG_KEY) === 'es' ? 'es' : 'en';
+    function t(key) { return dict[currentLang][key] || key; }
+
+    function applyTranslations() {
+        document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.getAttribute('data-i18n')); });
+        document.querySelectorAll('[data-i18n-title]').forEach(el => { el.title = t(el.getAttribute('data-i18n-title')); });
+        document.getElementById('langToggle').textContent = currentLang.toUpperCase();
+        document.documentElement.lang = currentLang;
+        renderTemplatesGrid();
+    }
+
+    function translateStateDefaults(targetLang) {
+        const oldMap = pMap[targetLang === 'en' ? 'es' : 'en'];
+        const newMap = pMap[targetLang];
+        if (state.basics.name === oldMap.name) state.basics.name = newMap.name;
+        if (state.basics.title === oldMap.title) state.basics.title = newMap.title;
+        if (state.basics.summary === oldMap.sum) state.basics.summary = newMap.sum;
+        state.sections.forEach(sec => {
+            if (sec.title === oldMap.contact) sec.title = newMap.contact;
+            if (sec.title === oldMap.lang) sec.title = newMap.lang;
+            if (sec.title === oldMap.edu) sec.title = newMap.edu;
+            if (sec.title === oldMap.skills) sec.title = newMap.skills;
+            if (sec.title === oldMap.exp) sec.title = newMap.exp;
+            if (sec.type === 'contact' || sec.type === 'languages') {
+                sec.items.forEach(item => {
+                    if (item.label === oldMap.email) item.label = newMap.email;
+                    if (item.value === oldMap.email) item.value = newMap.email;
+                    if (item.label === oldMap.phone) item.label = newMap.phone;
+                    if (item.value === oldMap.phone) item.value = newMap.phone;
+                    if (item.label === oldMap.l1) item.label = newMap.l1;
+                    if (item.value === oldMap.l1v) item.value = newMap.l1v;
+                    if (item.label === oldMap.l2) item.label = newMap.l2;
+                    if (item.value === oldMap.l2v) item.value = newMap.l2v;
+                });
+            } else if (sec.type === 'experience') {
+                sec.items.forEach(item => {
+                    if (item.title === oldMap.job) item.title = newMap.job;
+                    if (item.title === oldMap.eduTitle) item.title = newMap.eduTitle;
+                    if (item.subtitle === oldMap.comp) item.subtitle = newMap.comp;
+                    if (item.subtitle === oldMap.eduSub) item.subtitle = newMap.eduSub;
+                    if (item.meta === oldMap.date) item.meta = newMap.date;
+                    if (item.meta === oldMap.eduDate) item.meta = newMap.eduDate;
+                    if (item.location === oldMap.loc) item.location = newMap.loc;
+                    if (item.location === oldMap.eduLoc) item.location = newMap.eduLoc;
+                    if (item.bullets === oldMap.bull) item.bullets = newMap.bull;
+                });
+            } else if (sec.type === 'skills') {
+                sec.items.forEach(item => { if (item.value === oldMap.sk) item.value = newMap.sk; });
+            }
+        });
+    }
+
+    // Render engine (draws the CV into the HTML)
+    const RenderEngine = {
+        node: null,
+        init() { this.node = dom.get('#resumeNode'); },
+
+        build() {
+            const n = this.node;
+            const tpl = cvTemplates.find(t => t.id === state.template) || cvTemplates[0];
+            n.className = `resume ${tpl.cls}`;
+            
+            if (!state.ui.sidebar) n.classList.add('single-col');
+            if (!state.photo.enabled) n.classList.add('no-photo');
+            if (!state.ui.separators) n.classList.add('no-separators');
+
+            const sideSecs = state.sections.filter(s => s.column === 'side' && s.visible).sort((a,b) => (a.priority||0)-(b.priority||0));
+            const mainSecs = state.sections.filter(s => s.column === 'main' && s.visible).sort((a,b) => (a.priority||0)-(b.priority||0));
+            const allSecs = state.sections.filter(s => s.visible).sort((a,b) => (a.priority||0)-(b.priority||0));
+
+            const renderSections = (secs) => secs.map(sec => this.renderSection(sec)).join('');
+
+            let photoHtml = '';
+            if (state.photo.enabled && state.photo.data) {
+                const sz = state.photo.size || 130;
+                // Offsets were set in the 140px cropper, so scale them to the rendered photo size
+                const k = sz / CROPPER_SIZE;
+                const px = (Number(state.photo.x) || 0) * k, py = (Number(state.photo.y) || 0) * k, sc = Number(state.photo.scale) || 1;
+                photoHtml = `<div class="rs-photo shape-${escapeHtml(state.photo.shape)}" style="width:${sz}px;height:${sz}px;"><img alt="" src="${escapeHtml(state.photo.data)}" style="transform:translate(${px}px,${py}px) scale(${sc});" /></div>`;
+            }
+
+            const topHtml = `<div class="rs-top">${state.photo.enabled && state.photo.data ? `<div>` : '<div style="grid-column:1/-1">'}<div class="rs-name">${escapeHtml(state.basics.name)}</div><div class="rs-role">${escapeHtml(state.basics.title)}</div>${state.basics.summary ? `<div class="rs-summary">${escapeHtml(state.basics.summary)}</div>` : ''}</div>${state.photo.enabled && state.photo.data ? photoHtml : ''}</div>`;
+
+            let bodyHtml;
+            if (!state.ui.sidebar) {
+                bodyHtml = `<div class="rs-body"><div class="rs-col" data-col="main">${renderSections(allSecs)}</div></div>`;
+            } else {
+                bodyHtml = `<div class="rs-body"><div class="rs-col" data-col="side">${renderSections(sideSecs)}</div><div class="rs-col" data-col="main">${renderSections(mainSecs)}</div></div>`;
+            }
+
+            n.innerHTML = topHtml + bodyHtml;
+            this.fitDocument();
+            this.setupDragDrop();
+        },
+
+        renderSection(sec) {
+            let inner = '';
+            if (sec.type === 'contact' || sec.type === 'languages') {
+                inner = `<div class="rs-kv">${sec.items.map(item => `<div class="rs-line">${item.icon ? `<span class="rs-prefix">${escapeHtml(item.icon)}</span>` : ''}<span><strong>${escapeHtml(item.label)}</strong>${item.value && item.value !== item.label ? `: ${escapeHtml(item.value)}` : ''}</span></div>`).join('')}</div>`;
+            } else if (sec.type === 'skills') {
+                inner = `<div class="rs-chips">${sec.items.flatMap(it => (it.value||'').split(',').map(s=>s.trim()).filter(Boolean).map(s=>`<span class="rs-chip">${escapeHtml(s)}</span>`)).join('')}</div>`;
+            } else {
+                inner = sec.items.map(item => {
+                    const bulletsHtml = item.bullets ? `<ul>${item.bullets.split('\n').filter(Boolean).map(b=>`<li>${escapeHtml(b.replace(/^[-•]\s*/,''))}</li>`).join('')}</ul>` : '';
+                    return `<div class="rs-entry"><div class="rs-entry-head"><div class="rs-entry-content"><div class="rs-entry-title">${escapeHtml(item.title)}</div><div class="rs-entry-sub">${escapeHtml(item.subtitle)}${item.location ? ` · ${escapeHtml(item.location)}` : ''}</div></div>${item.meta ? `<div class="rs-entry-meta">${escapeHtml(item.meta)}</div>` : ''}</div>${bulletsHtml}</div>`;
+                }).join('');
+            }
+            return `<div class="draggable-section" data-sec-id="${escapeHtml(sec.id)}"><div class="rs-block"><div class="rs-title">${escapeHtml(sec.title)}</div>${inner}</div></div>`;
+        },
+
+        // Drag-and-drop logic for moving sections
+        setupDragDrop() {
+            const sections = this.node.querySelectorAll('.draggable-section');
+            const cols = this.node.querySelectorAll('.rs-col');
+            let dragSrcId = null;
+
+            sections.forEach(el => {
+                el.setAttribute('draggable', 'true');
+                el.addEventListener('dragstart', e => {
+                    dragSrcId = el.dataset.secId;
+                    setTimeout(() => el.classList.add('dragging'), 0);
+                    e.dataTransfer.effectAllowed = 'move';
+                });
+                el.addEventListener('dragend', () => {
+                    el.classList.remove('dragging');
+                    document.querySelectorAll('.drop-indicator-top, .drop-indicator-bottom').forEach(x => {
+                        x.classList.remove('drop-indicator-top', 'drop-indicator-bottom');
+                    });
+                    cols.forEach(c => c.classList.remove('drag-over-empty'));
+                });
+                el.addEventListener('dragover', e => {
+                    e.preventDefault(); e.dataTransfer.dropEffect = 'move';
+                    document.querySelectorAll('.drop-indicator-top, .drop-indicator-bottom').forEach(x => {
+                        x.classList.remove('drop-indicator-top', 'drop-indicator-bottom');
+                    });
+                    cols.forEach(c => c.classList.remove('drag-over-empty'));
+                    const rect = el.getBoundingClientRect();
+                    const mid = rect.top + rect.height / 2;
+                    if (e.clientY < mid) { el.classList.add('drop-indicator-top'); }
+                    else { el.classList.add('drop-indicator-bottom'); }
+                });
+                el.addEventListener('drop', e => {
+                    e.preventDefault();
+                    if (!dragSrcId || dragSrcId === el.dataset.secId) return;
+                    const rect = el.getBoundingClientRect();
+                    const mid = rect.top + rect.height / 2;
+                    const before = e.clientY < mid;
+                    const newCol = el.closest('[data-col]').dataset.col;
+                    const srcIdx = state.sections.findIndex(s => s.id === dragSrcId);
+                    const tgtIdx = state.sections.findIndex(s => s.id === el.dataset.secId);
+                    if (srcIdx === -1 || tgtIdx === -1) return;
+                    state.sections[srcIdx].column = newCol;
+                    const [moved] = state.sections.splice(srcIdx, 1);
+                    const newTgtIdx = state.sections.findIndex(s => s.id === el.dataset.secId);
+                    state.sections.splice(before ? newTgtIdx : newTgtIdx + 1, 0, moved);
+                    state.sections.forEach((s, i) => s.priority = i + 1);
+                    requestFullUpdate();
+                });
+            });
+
+            cols.forEach(col => {
+                col.addEventListener('dragover', e => {
+                    e.preventDefault();
+                    const hasChildren = col.querySelectorAll('.draggable-section:not(.dragging)').length > 0;
+                    if (!hasChildren) { col.classList.add('drag-over-empty'); }
+                });
+                col.addEventListener('dragleave', () => col.classList.remove('drag-over-empty'));
+                col.addEventListener('drop', e => {
+                    e.preventDefault();
+                    col.classList.remove('drag-over-empty');
+                    const hasChildren = col.querySelectorAll('.draggable-section:not(.dragging)').length > 0;
+                    if (!dragSrcId || hasChildren) return;
+                    const srcIdx = state.sections.findIndex(s => s.id === dragSrcId);
+                    if (srcIdx !== -1) {
+                        state.sections[srcIdx].column = col.dataset.col;
+                        state.sections[srcIdx].priority = 999;
+                        requestFullUpdate();
+                    }
+                });
+            });
+        },
+
+        applyTemplateStyles(tplId) {
+            /*
+             * Slightly smaller font and a sidebar of ~28% (previously 32%).
+             * This keeps titles in the main column from wrapping to the next line
+             * due to lack of horizontal space.
+             */
+            const st = tplId === 'compact' ? { font: 12.0, line: 1.25, gap: 10, margin: 13, sidebar: 26, name: 28, role: 14 } :
+                       tplId === 'modern'  ? { font: 12.6, line: 1.32, gap: 13, margin: 15, sidebar: 28, name: 30, role: 15 } :
+                       tplId === 'executive' ? { font: 12.6, line: 1.31, gap: 13, margin: 15, sidebar: 28, name: 32, role: 14 } :
+                       tplId === 'tech'    ? { font: 12.4, line: 1.28, gap: 12, margin: 13, sidebar: 28, name: 30, role: 14.5 } :
+                       tplId === 'creative' ? { font: 12.5, line: 1.29, gap: 12.5, margin: 14, sidebar: 28, name: 30, role: 14.5 } :
+                       { font: 12.6, line: 1.34, gap: 14, margin: 16, sidebar: 28, name: 34, role: 15 };
+                       
+            const r = this.node.style;
+            r.setProperty('--rs-font', st.font + 'px'); r.setProperty('--rs-line', st.line);
+            r.setProperty('--rs-gap', st.gap + 'px'); r.setProperty('--rs-margin', st.margin + 'mm');
+            r.setProperty('--rs-sidebar', st.sidebar + '%'); r.setProperty('--rs-name', st.name + 'px');
+            r.setProperty('--rs-role', st.role + 'px');
+            const finalColor = state.ui.accentColor || getDefaultTemplateColor(tplId);
+            r.setProperty('--rs-accent', finalColor);
+        },
+
+        // Smart fitting algorithm for a single A4 sheet
+        fitDocument() {
+            if (state.ui.fitMode === 'manual') return;
+            this.applyTemplateStyles(state.template);
+            
+            const maxH = this.node.clientHeight;
+            let minSettings;
+
+            if (state.ui.fitMode === 'readability') {
+                minSettings = { font: 11.5, line: 1.25, gap: 10, margin: 12 };
+            } else if (state.ui.fitMode === 'condense') {
+                minSettings = { font: 9.0, line: 1.1, gap: 4, margin: 6 }; 
+            } else {
+                minSettings = { font: 10.0, line: 1.15, gap: 6, margin: 8 }; 
+            }
+
+            let attempts = 0;
+            while (this.node.scrollHeight > maxH && attempts < 150) {
+                let f = parseFloat(getComputedStyle(this.node).getPropertyValue('--rs-font'));
+                let g = parseFloat(getComputedStyle(this.node).getPropertyValue('--rs-gap'));
+                let l = parseFloat(getComputedStyle(this.node).getPropertyValue('--rs-line'));
+                let m = parseFloat(getComputedStyle(this.node).getPropertyValue('--rs-margin'));
+                
+                let compressed = false;
+
+                if (g > minSettings.gap) { 
+                    this.node.style.setProperty('--rs-gap', (g - 0.5) + 'px'); 
+                    compressed = true; 
+                } else if (m > minSettings.margin) { 
+                    this.node.style.setProperty('--rs-margin', (m - 0.5) + 'mm'); 
+                    compressed = true; 
+                } else if (l > minSettings.line) { 
+                    this.node.style.setProperty('--rs-line', (l - 0.02).toFixed(3)); 
+                    compressed = true; 
+                } else if (f > minSettings.font) { 
+                    this.node.style.setProperty('--rs-font', (f - 0.1).toFixed(2) + 'px'); 
+                    compressed = true; 
+                }
+                
+                if (!compressed) break;
+                attempts++;
+            }
+        }
+    };
+
+    // UI controllers and events
+    let fullUpdateTimeout, previewUpdateTimeout;
+
+    function requestFullUpdate() {
+        clearTimeout(fullUpdateTimeout);
+        fullUpdateTimeout = setTimeout(() => { saveState(true); syncUI(); RenderEngine.build(); }, 50);
+    }
+
+    function requestPreviewUpdate() {
+        clearTimeout(previewUpdateTimeout);
+        previewUpdateTimeout = setTimeout(() => { saveState(true); RenderEngine.build(); }, 50);
+    }
+
+    function syncUI() {
+        dom.getAll('[data-bind]').forEach(el => {
+            const val = resolvePath(state, el.getAttribute('data-bind')) || '';
+            if (el.value !== val) el.value = val;
+        });
+        dom.get('#fitModeSelect').value = state.ui.fitMode;
+        dom.get('#uiSidebarToggle').checked = state.ui.sidebar;
+        dom.get('#uiSeparatorsToggle').checked = state.ui.separators;
+        dom.get('#photoEnabledToggle').checked = state.photo.enabled;
+        dom.get('#accentColorPicker').value = state.ui.accentColor || getDefaultTemplateColor(state.template);
+        state.photo.size = state.photo.size || 130;
+        dom.get('#photoSizeSlider').value = state.photo.size;
+        dom.get('#photoSizeVal').textContent = state.photo.size;
+        dom.get('#photoZoomSlider').value = state.photo.scale || 1;
+        const img = dom.get('#photoPreviewImg'), placeholder = dom.get('#photoPlaceholder');
+        if (state.photo.data) {
+            img.src = state.photo.data;
+            img.style.transform = `translate(${state.photo.x}px, ${state.photo.y}px) scale(${state.photo.scale})`;
+            img.style.display = 'block'; placeholder.style.display = 'none';
+        } else {
+            img.style.display = 'none'; placeholder.style.display = 'block';
+        }
+        dom.getAll('[data-shape]').forEach(b => { b.classList.toggle('btn-primary', b.dataset.shape === state.photo.shape); });
+        renderTemplatesGrid();
+        renderEditorSections();
+    }
+
+    function renderTemplatesGrid() {
+        const grid = dom.get('#templateGridNode');
+        grid.innerHTML = cvTemplates.map(tpl => {
+            const name = currentLang === 'en' ? tpl.name : tpl.nameEs;
+            const desc = currentLang === 'en' ? tpl.desc : tpl.descEs;
+            return `<button class="template-btn ${state.template === tpl.id ? 'active' : ''}" data-template="${tpl.id}"><strong>${name}</strong><span>${desc}</span></button>`;
+        }).join('');
+        grid.querySelectorAll('.template-btn').forEach(btn => {
+            dom.on(btn, 'click', () => {
+                state.template = btn.dataset.template;
+                dom.get('#accentColorPicker').value = state.ui.accentColor || getDefaultTemplateColor(state.template);
+                requestFullUpdate();
+            });
+        });
+    }
+
+    function renderEditorSections() {
+        const container = dom.get('#sectionListContainer');
+        container.innerHTML = '';
+        state.sections.forEach((sec, sIdx) => {
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.style.cssText = 'transition: transform 0.35s var(--ease-spring), box-shadow 0.35s var(--ease-smooth), opacity 0.3s;';
+            card.innerHTML = `<div class="card-header"><div style="display:flex;align-items:center;flex:1;min-width:0;"><input type="text" class="form-control" style="font-weight:700;padding:6px 10px;margin-right:8px;" data-field="title" value="${escapeHtml(sec.title)}"></div><div style="display:flex;gap:6px;"><button class="btn btn-icon" data-action="toggle-vis" title="${t('toggleVis')}"><svg viewBox="0 0 24 24" fill="none" stroke="${sec.visible ? 'currentColor' : '#cbd5e1'}" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button><button class="btn btn-icon" data-action="delete" style="color:var(--danger)"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button></div></div><div style="padding:12px 18px;background:var(--bg-soft);border-bottom:1px solid var(--border-light);"><label class="text-xs" style="display:block;margin-bottom:6px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;" data-i18n="styleVis">${t('styleVis')}</label><select class="form-control" style="padding:8px;font-size:13px;" data-field="type"><option value="contact" ${sec.type==='contact'?'selected':''} data-i18n="stContact">${t('stContact')}</option><option value="experience" ${(sec.type==='experience'||sec.type==='education')?'selected':''} data-i18n="stExp">${t('stExp')}</option><option value="skills" ${sec.type==='skills'?'selected':''} data-i18n="stSkill">${t('stSkill')}</option><option value="languages" ${sec.type==='languages'?'selected':''} data-i18n="stLang">${t('stLang')}</option></select></div><div class="card-body"><div class="section-items"></div><button class="btn btn-primary" style="width:100%;margin-top:12px;font-size:12px;padding:8px;" data-action="add-item">+ ${t('btnAdd')}</button></div>`;
+
+            const itemsContainer = card.querySelector('.section-items');
+            sec.items.forEach((item, iIdx) => {
+                const itemBox = document.createElement('div');
+                itemBox.style.cssText = 'background:var(--bg-soft);border-radius:var(--radius-sm);padding:14px;margin-bottom:10px;border:1.5px solid var(--border-light);position:relative;z-index:1;transition:transform 0.4s var(--ease-spring), box-shadow 0.4s var(--ease-smooth), border-color 0.4s;';
+                itemBox.addEventListener('mouseenter', () => { 
+                    itemBox.style.transform = 'scale(1.025) translateY(-3px)'; 
+                    itemBox.style.boxShadow = '0 12px 30px rgba(0,0,0,0.12)'; 
+                    itemBox.style.borderColor = 'var(--border-focus)'; 
+                    itemBox.style.zIndex = '10';
+                });
+                itemBox.addEventListener('mouseleave', () => { 
+                    itemBox.style.transform = 'scale(1) translateY(0)'; 
+                    itemBox.style.boxShadow = ''; 
+                    itemBox.style.borderColor = 'var(--border-light)'; 
+                    itemBox.style.zIndex = '1';
+                });
+
+                let fieldsHtml = '';
+                if (sec.type === 'contact' || sec.type === 'languages') {
+                    fieldsHtml = `<div style="display:grid;grid-template-columns:1fr 2fr 3fr;gap:8px;"><input class="form-control" placeholder="${t('itemIcon')}" data-k="icon" value="${escapeHtml(item.icon||'')}"><input class="form-control" placeholder="${t('itemLabel')}" data-k="label" value="${escapeHtml(item.label)}"><input class="form-control" placeholder="${t('itemValue')}" data-k="value" value="${escapeHtml(item.value)}"></div>`;
+                } else if (sec.type === 'skills') {
+                    fieldsHtml = `<textarea class="form-control" placeholder="${t('itemSkills')}" data-k="value">${escapeHtml(item.value)}</textarea>`;
+                } else {
+                    fieldsHtml = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;"><input class="form-control" placeholder="${t('itemTitle')}" data-k="title" value="${escapeHtml(item.title)}"><input class="form-control" placeholder="${t('itemSubtitle')}" data-k="subtitle" value="${escapeHtml(item.subtitle)}"></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;"><input class="form-control" placeholder="${t('itemMeta')}" data-k="meta" value="${escapeHtml(item.meta)}"><input class="form-control" placeholder="${t('itemLocation')}" data-k="location" value="${escapeHtml(item.location)}"></div><textarea class="form-control" placeholder="${t('itemBullets')}" data-k="bullets">${escapeHtml(item.bullets)}</textarea>`;
+                }
+                itemBox.innerHTML = `${fieldsHtml}<div style="display:flex;gap:6px;margin-top:10px;justify-content:flex-end;"><button class="btn btn-icon" data-a="up"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"/></svg></button><button class="btn btn-icon" data-a="dn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></button><button class="btn btn-icon" data-a="dup" title="${t('btnDup')}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button><button class="btn btn-icon btn-danger" data-a="del" title="${t('btnDel')}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button></div>`;
+
+                itemBox.querySelectorAll('[data-k]').forEach(input => {
+                    dom.on(input, 'input', () => { item[input.dataset.k] = input.value; requestPreviewUpdate(); });
+                });
+                itemBox.querySelector('[data-a="up"]').onclick = () => { if (iIdx > 0) { [sec.items[iIdx-1], sec.items[iIdx]] = [sec.items[iIdx], sec.items[iIdx-1]]; requestFullUpdate(); }};
+                itemBox.querySelector('[data-a="dn"]').onclick = () => { if (iIdx < sec.items.length-1) { [sec.items[iIdx], sec.items[iIdx+1]] = [sec.items[iIdx+1], sec.items[iIdx]]; requestFullUpdate(); }};
+                itemBox.querySelector('[data-a="dup"]').onclick = () => { sec.items.splice(iIdx+1, 0, JSON.parse(JSON.stringify(item))); requestFullUpdate(); };
+                itemBox.querySelector('[data-a="del"]').onclick = () => { sec.items.splice(iIdx, 1); requestFullUpdate(); };
+                itemsContainer.appendChild(itemBox);
+            });
+
+            card.querySelector('[data-field="title"]').addEventListener('input', e => { sec.title = e.target.value; requestPreviewUpdate(); });
+            card.querySelector('[data-field="type"]').addEventListener('change', e => { sec.type = e.target.value; requestFullUpdate(); });
+            card.querySelector('[data-action="toggle-vis"]').onclick = () => { sec.visible = !sec.visible; requestFullUpdate(); };
+            card.querySelector('[data-action="delete"]').onclick = () => {
+                card.style.transform = 'scale(0.95) translateY(-4px)';
+                card.style.opacity = '0';
+                setTimeout(() => { state.sections.splice(sIdx, 1); requestFullUpdate(); }, 260);
+            };
+            card.querySelector('[data-action="add-item"]').onclick = () => {
+                const defaultItem = (sec.type === 'contact' || sec.type === 'languages') ? { icon: '', label: '', value: '' } : sec.type === 'skills' ? { value: '' } : { title: '', subtitle: '', meta: '', location: '', bullets: '' };
+                sec.items.push(defaultItem); requestFullUpdate();
+            };
+
+            container.appendChild(card);
+        });
+    }
+
+    // Navigation menu setup
+    function setupNav() {
+        const navItems = Array.from(dom.getAll('.nav-item'));
+        const panelOrder = { 'panel-content': 0, 'panel-design': 1, 'panel-photo': 2, 'panel-data': 3 };
+        let currentPanelId = 'panel-content';
+
+        navItems.forEach(btn => {
+            dom.on(btn, 'click', () => {
+                const targetId = btn.dataset.target;
+                if (targetId === currentPanelId) return;
+
+                const currentOrder = panelOrder[currentPanelId] || 0;
+                const targetOrder = panelOrder[targetId] || 0;
+                const direction = targetOrder > currentOrder ? 'slide-in-right' : 'slide-in-left';
+
+                navItems.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+
+                const allPanels = dom.getAll('.tab-panel');
+                allPanels.forEach(p => {
+                    p.classList.remove('slide-in-left', 'slide-in-right');
+                    p.classList.add('hide');
+                });
+
+                const target = dom.get(`#${targetId}`);
+                target.classList.remove('hide');
+                void target.offsetWidth; // Force reflow
+                target.classList.add(direction);
+
+                currentPanelId = targetId;
+            });
+        });
+    }
+
+    // Photo upload and cropping setup
+    function setupPhotoSystem() {
+        dom.on(dom.get('#btnUploadPhoto'), 'click', () => dom.get('#photoInputFile').click());
+        dom.on(dom.get('#photoInputFile'), 'change', e => {
+            const file = e.target.files[0];
+            e.target.value = '';
+            if (!file) return;
+            const url = URL.createObjectURL(file);
+            const source = new Image();
+            source.onload = () => {
+                const ratio = Math.min(1, PHOTO_MAX_PX / Math.max(source.naturalWidth, source.naturalHeight));
+                const canvas = document.createElement('canvas');
+                canvas.width = Math.round(source.naturalWidth * ratio);
+                canvas.height = Math.round(source.naturalHeight * ratio);
+                const ctx = canvas.getContext('2d');
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(source, 0, 0, canvas.width, canvas.height);
+                URL.revokeObjectURL(url);
+                state.photo.data = canvas.toDataURL('image/jpeg', 0.9);
+                state.photo.x = 0; state.photo.y = 0; state.photo.scale = 1;
+                state.photo.enabled = true;
+                requestFullUpdate();
+            };
+            source.onerror = () => { URL.revokeObjectURL(url); alert(t('alertImage')); };
+            source.src = url;
+        });
+        dom.on(dom.get('#btnRemovePhoto'), 'click', () => {
+            state.photo.data = null; requestFullUpdate();
+        });
+        dom.on(dom.get('#photoEnabledToggle'), 'change', e => {
+            state.photo.enabled = e.target.checked; requestFullUpdate();
+        });
+        dom.getAll('[data-shape]').forEach(btn => {
+            dom.on(btn, 'click', () => { state.photo.shape = btn.dataset.shape; requestFullUpdate(); });
+        });
+        dom.on(dom.get('#photoSizeSlider'), 'input', e => {
+            state.photo.size = parseInt(e.target.value);
+            dom.get('#photoSizeVal').textContent = state.photo.size;
+            requestPreviewUpdate();
+        });
+
+        const cropper = dom.get('#photoCropperArea');
+        const updateCropperPreview = () => {
+            const img = dom.get('#photoPreviewImg');
+            if (img) img.style.transform = `translate(${state.photo.x}px, ${state.photo.y}px) scale(${state.photo.scale})`;
+        };
+        const setZoom = (scale) => {
+            state.photo.scale = Math.max(0.5, Math.min(4, scale));
+            dom.get('#photoZoomSlider').value = state.photo.scale;
+            updateCropperPreview();
+            requestPreviewUpdate();
+        };
+        // Pointer events cover mouse, pen and touch
+        let dragPointer = null, startX, startY, startPX, startPY;
+        dom.on(cropper, 'pointerdown', e => {
+            if (!state.photo.data) return;
+            dragPointer = e.pointerId; startX = e.clientX; startY = e.clientY;
+            startPX = state.photo.x || 0; startPY = state.photo.y || 0;
+            cropper.setPointerCapture(e.pointerId);
+            e.preventDefault();
+        });
+        dom.on(cropper, 'pointermove', e => {
+            if (e.pointerId !== dragPointer) return;
+            state.photo.x = startPX + (e.clientX - startX);
+            state.photo.y = startPY + (e.clientY - startY);
+            updateCropperPreview();
+            requestPreviewUpdate();
+        });
+        const endDrag = e => { if (e.pointerId === dragPointer) dragPointer = null; };
+        dom.on(cropper, 'pointerup', endDrag);
+        dom.on(cropper, 'pointercancel', endDrag);
+        dom.on(cropper, 'wheel', e => {
+            if (!state.photo.data) return;
+            e.preventDefault();
+            setZoom((state.photo.scale || 1) - e.deltaY * 0.002);
+        }, { passive: false });
+        dom.on(dom.get('#photoZoomSlider'), 'input', e => setZoom(parseFloat(e.target.value)));
+    }
+
+    // Data export and restore setup
+    function setupDataSystem() {
+        dom.on(dom.get('#btnExportData'), 'click', () => {
+            const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'monolithcv-backup.json';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+        });
+        dom.on(dom.get('#btnImportData'), 'click', () => dom.get('#importFileInput').click());
+        dom.on(dom.get('#importFileInput'), 'change', e => {
+            const file = e.target.files[0];
+            e.target.value = '';
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = ev => {
+                let imported = null;
+                try { imported = normalizeState(JSON.parse(ev.target.result)); } catch(err) {}
+                if (!imported) { alert(t('alertJson')); return; }
+                state = imported;
+                requestFullUpdate();
+            };
+            reader.readAsText(file);
+        });
+        dom.on(dom.get('#btnFactoryReset'), 'click', () => {
+            if (confirm(t('confirmReset'))) {
+                state = defaultState(); initDefaults(); history = []; historyIdx = -1;
+                store.remove(STORAGE_KEY);
+                requestFullUpdate();
+            }
+        });
+    }
+
+    // Scales the A4 preview down when the workspace is narrower than the sheet.
+    // A transform does not affect clientHeight/scrollHeight, so the fit algorithm still measures real A4 size.
+    function setupPreviewScaling() {
+        const workspace = dom.get('.workspace'), frame = dom.get('#a4Frame'), scaler = dom.get('#a4Scaler'), page = dom.get('.a4-page');
+        const update = () => {
+            const cs = getComputedStyle(workspace);
+            const avail = workspace.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+            const w = page.offsetWidth, h = page.offsetHeight;
+            const k = Math.min(1, avail / w);
+            scaler.style.transform = k < 1 ? `scale(${k})` : '';
+            frame.style.width = (w * k) + 'px';
+            frame.style.height = (h * k) + 'px';
+        };
+        update();
+        if (window.ResizeObserver) new ResizeObserver(update).observe(workspace);
+        else dom.on(window, 'resize', update);
+    }
+
+    // Application initialization
+    function init() {
+        loadState();
+        RenderEngine.init();
+
+        // Theme is a global preference shared with the menu page, not part of the CV (or its undo history)
+        document.body.classList.toggle('dark-mode', store.get(THEME_KEY) === 'dark');
+        dom.on(dom.get('#themeToggle'), 'click', () => {
+            const dark = !document.body.classList.contains('dark-mode');
+            document.body.classList.toggle('dark-mode', dark);
+            store.set(THEME_KEY, dark ? 'dark' : 'light');
+        });
+
+        dom.on(dom.get('#langToggle'), 'click', () => {
+            const newLang = currentLang === 'en' ? 'es' : 'en';
+            translateStateDefaults(newLang);
+            currentLang = newLang;
+            store.set(LANG_KEY, newLang);
+            applyTranslations();
+            requestFullUpdate();
+        });
+
+        dom.on(dom.get('#btnUndo'), 'click', undo);
+        dom.on(dom.get('#btnRedo'), 'click', redo);
+        dom.on(dom.get('#btnPrint'), 'click', () => window.print());
+
+        dom.on(dom.get('#fitModeSelect'), 'change', e => {
+            state.ui.fitMode = e.target.value; requestPreviewUpdate();
+        });
+        dom.on(dom.get('#uiSidebarToggle'), 'change', e => {
+            state.ui.sidebar = e.target.checked; requestFullUpdate();
+        });
+        dom.on(dom.get('#uiSeparatorsToggle'), 'change', e => {
+            state.ui.separators = e.target.checked; requestFullUpdate();
+        });
+        dom.on(dom.get('#accentColorPicker'), 'input', e => {
+            state.ui.accentColor = e.target.value; requestPreviewUpdate();
+        });
+        dom.on(dom.get('#btnResetColor'), 'click', () => {
+            state.ui.accentColor = ''; requestFullUpdate();
+        });
+
+        dom.on(dom.get('#btnAddSection'), 'click', () => {
+            const title = prompt(t('promptTitle'), t('newSection'));
+            if (!title) return;
+            state.sections.push({ id: 'sec_' + Date.now(), type: 'experience', column: 'main', title, visible: true, priority: state.sections.length + 1, items: [] });
+            requestFullUpdate();
+        });
+
+        dom.getAll('[data-bind]').forEach(el => {
+            dom.on(el, 'input', () => { setPath(state, el.getAttribute('data-bind'), el.value); requestPreviewUpdate(); });
+        });
+
+        setupPreviewScaling();
+        setupNav();
+        setupPhotoSystem();
+        setupDataSystem();
+        applyTranslations();
+        syncUI();
+        RenderEngine.build();
+
+        history.push(JSON.stringify(state));
+        historyIdx = 0;
+        saveState();
+    }
+
+    return { init };
+})();
+
+document.addEventListener('DOMContentLoaded', MonolithCV.init);
+</script>
+</body>
+</html>
