@@ -14,8 +14,9 @@ MonolithCV is a static web app that runs entirely in your browser. I made it to 
 
 No sign-ups, no server, no cloud syncing. All data stays in your browser's local storage.
 
-## Test it: 
-https://wellm3id08.github.io/monolith-cv/
+## AI Assistance
+
+Some parts of the code, such as drag-and-drop behavior, auto-fit logic, and local storage handling, were written or improved with the help of an AI assistant. The design decisions and core product direction were human-led.
 
 ## Features
 
@@ -23,6 +24,7 @@ https://wellm3id08.github.io/monolith-cv/
 - **Auto-fit**: Font sizes, spacing, and margins are adjusted automatically so your content fits on one page.
 - **Drag & drop sections**: Reorder your CV sections directly from the preview pane.
 - **6 Templates**: Minimalist, Compact, Modern, Classic, Tech, and Creative.
+- **Built-in icons**: Pick minimalist line icons (email, phone, location, link, website, GitHub, LinkedIn and more) for contact items, or type your own emoji/text.
 - **Profile photo editor**: Upload your picture, pan, zoom, and crop it (square, rounded, or circle).
 - **Two-column layout**: Toggle the sidebar on or off depending on how much horizontal space you need.
 - **Dark mode** and **bilingual UI** (English / Spanish), remembered between visits.
@@ -56,10 +58,6 @@ The site is plain HTML with no build step.
 2. In the repository, go to **Settings → Pages**.
 3. Under **Build and deployment**, set **Source** to *Deploy from a branch*, select your branch (e.g. `main`) and the `/ (root)` folder, then **Save**.
 4. After a minute the site is available at `https://<your-username>.github.io/<repository-name>/`.
-
-## AI Assistance
-
-Some parts of the code, such as drag-and-drop behavior, auto-fit logic, and local storage handling, were written or improved with the help of an AI assistant. The design decisions and core product direction were human-led.
 
 ## Run locally
 

@@ -258,6 +258,21 @@
         .slider-control::-webkit-slider-thumb:hover { transform: scale(1.4); box-shadow: 0 6px 16px rgba(0,0,0,0.3); }
         .slider-control::-moz-range-thumb { width: 18px; height: 18px; border: none; border-radius: 50%; background: var(--primary); cursor: pointer; }
 
+        /* Icon picker for contact / language items */
+        .icon-trigger { width: 48px; display: flex; align-items: center; justify-content: center; padding: 0; cursor: pointer; color: var(--text-main); font-size: 15px; }
+        .icon-trigger svg { width: 18px; height: 18px; }
+        .icon-trigger .icon-empty { color: var(--text-muted); font-size: 12px; }
+        .icon-picker { position: fixed; z-index: 1000; background: var(--bg-panel); border: 1.5px solid var(--border-light); border-radius: 16px; box-shadow: var(--shadow-float); padding: 10px; }
+        .icon-picker-grid { display: grid; grid-template-columns: repeat(7, 36px); gap: 4px; }
+        .icon-opt { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: var(--text-main); transition: background 0.2s, color 0.2s; }
+        .icon-opt:hover { background: var(--bg-soft); }
+        .icon-opt.active { background: var(--accent-soft); color: var(--accent); }
+        .icon-opt svg { width: 18px; height: 18px; }
+        .icon-picker-custom { display: flex; gap: 6px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border-light); }
+        .icon-picker-custom .form-control { padding: 6px 10px; font-size: 13px; }
+        .icon-picker-custom .form-control:hover, .icon-picker-custom .form-control:focus { transform: none; }
+        .icon-picker-custom .btn { padding: 6px 14px; }
+
         .hint-box { padding: 12px 16px; background: transparent; border-radius: 10px; border: 1.5px solid var(--border-light); color: var(--text-muted); font-size: 11.5px; display: flex; align-items: center; gap: 0; margin-bottom: 20px; opacity: 0.8; transition: border-color 0.4s; }
         
         /* Tab navigation animations */
@@ -350,7 +365,8 @@
         .resume .rs-title { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.16em; font-weight: 800; color: var(--rs-accent); padding-bottom: 5px; }
         .resume .rs-kv { display: flex; flex-direction: column; gap: 7px; }
         .resume .rs-line { display: flex; gap: 8px; align-items: flex-start; word-wrap: break-word; }
-        .resume .rs-prefix { color: var(--rs-accent); font-weight: 700; display: inline-flex; justify-content: center; min-width: 16px; }
+        .resume .rs-prefix { color: var(--rs-accent); font-weight: 700; display: inline-flex; justify-content: center; min-width: 16px; flex-shrink: 0; }
+        .resume .rs-prefix svg { width: 1.05em; height: 1.05em; margin-top: calc((var(--rs-line) * 1em - 1.05em) / 2); }
         .resume .rs-entry { display: flex; flex-direction: column; gap: 5px; }
         
         /* Separators between entries (applied when "Line separators" is enabled) */
@@ -635,6 +651,84 @@ const MonolithCV = (() => {
         on: (el, ev, fn) => el.addEventListener(ev, fn)
     };
 
+    // Built-in line icons (Lucide style, 24x24, stroke-based). Stored in items as 'icon:<key>'.
+    const ICONS = {
+        mail: { en: 'Email', es: 'Correo', svg: '<rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>' },
+        phone: { en: 'Phone', es: 'Teléfono', svg: '<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>' },
+        mobile: { en: 'Mobile', es: 'Móvil', svg: '<rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/>' },
+        location: { en: 'Location', es: 'Ubicación', svg: '<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>' },
+        link: { en: 'Link', es: 'Enlace', svg: '<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>' },
+        website: { en: 'Website', es: 'Sitio web', svg: '<circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/>' },
+        github: { en: 'GitHub', es: 'GitHub', svg: '<path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/>' },
+        linkedin: { en: 'LinkedIn', es: 'LinkedIn', svg: '<path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect width="4" height="12" x="2" y="9"/><circle cx="4" cy="4" r="2"/>' },
+        at: { en: 'Username', es: 'Usuario', svg: '<circle cx="12" cy="12" r="4"/><path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-4 8"/>' },
+        message: { en: 'Message', es: 'Mensaje', svg: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>' },
+        user: { en: 'Person', es: 'Persona', svg: '<circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/>' },
+        home: { en: 'Address', es: 'Dirección', svg: '<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>' },
+        briefcase: { en: 'Work', es: 'Trabajo', svg: '<rect width="20" height="14" x="2" y="7" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>' },
+        calendar: { en: 'Date', es: 'Fecha', svg: '<rect width="18" height="18" x="3" y="4" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/>' },
+        education: { en: 'Education', es: 'Educación', svg: '<path d="M22 10v6"/><path d="M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/>' },
+        award: { en: 'Award', es: 'Premio', svg: '<circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/>' },
+        language: { en: 'Language', es: 'Idioma', svg: '<path d="m5 8 6 6"/><path d="m4 14 6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="m22 22-5-10-5 10"/><path d="M14 18h6"/>' },
+        code: { en: 'Code', es: 'Código', svg: '<polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>' },
+        folder: { en: 'Portfolio', es: 'Portafolio', svg: '<path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/>' },
+        star: { en: 'Highlight', es: 'Destacado', svg: '<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>' }
+    };
+    // Glyphs used by older versions, upgraded to built-in icons when loaded
+    const LEGACY_ICONS = { '✉': 'icon:mail', '☎': 'icon:phone' };
+
+    const svgIcon = (inner) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${inner}</svg>`;
+
+    // Built-in icons render as SVG; anything else (emoji, text) is shown as typed
+    function iconHtml(icon) {
+        if (!icon) return '';
+        if (icon.startsWith('icon:')) {
+            const def = ICONS[icon.slice(5)];
+            return def ? svgIcon(def.svg) : '';
+        }
+        return escapeHtml(icon);
+    }
+
+    // Popover for choosing an item icon; a single instance is reused for every item
+    const IconPicker = {
+        el: null, anchor: null, onPick: null,
+        open(anchor, current, onPick) {
+            if (this.anchor === anchor) { this.close(); return; }
+            this.close();
+            this.anchor = anchor; this.onPick = onPick;
+            const custom = current.startsWith('icon:') ? '' : current;
+            const opts = [`<button type="button" class="icon-opt ${!current ? 'active' : ''}" data-icon="" title="${t('iconNone')}"><span class="icon-empty">–</span></button>`]
+                .concat(Object.entries(ICONS).map(([k, def]) =>
+                    `<button type="button" class="icon-opt ${current === 'icon:' + k ? 'active' : ''}" data-icon="icon:${k}" title="${escapeHtml(def[currentLang] || def.en)}">${svgIcon(def.svg)}</button>`));
+            const el = document.createElement('div');
+            el.className = 'icon-picker';
+            el.innerHTML = `<div class="icon-picker-grid">${opts.join('')}</div><form class="icon-picker-custom"><input class="form-control" maxlength="4" placeholder="${t('iconCustom')}" value="${escapeHtml(custom)}"><button type="submit" class="btn btn-primary">OK</button></form>`;
+            el.querySelectorAll('[data-icon]').forEach(b => { b.onclick = () => this.pick(b.dataset.icon); });
+            el.querySelector('form').onsubmit = e => { e.preventDefault(); this.pick(el.querySelector('input').value.trim()); };
+            document.body.appendChild(el);
+            this.el = el;
+            this.position();
+        },
+        position() {
+            const r = this.anchor.getBoundingClientRect(), w = this.el.offsetWidth, h = this.el.offsetHeight;
+            const left = Math.max(8, Math.min(r.left, window.innerWidth - w - 8));
+            const top = r.bottom + 6 + h > window.innerHeight - 8 ? Math.max(8, r.top - h - 6) : r.bottom + 6;
+            this.el.style.left = left + 'px';
+            this.el.style.top = top + 'px';
+        },
+        pick(val) { const cb = this.onPick; this.close(); if (cb) cb(val); },
+        close() { if (this.el) this.el.remove(); this.el = null; this.anchor = null; this.onPick = null; },
+        init() {
+            dom.on(document, 'pointerdown', e => {
+                if (this.el && !this.el.contains(e.target) && !this.anchor.contains(e.target)) this.close();
+            });
+            dom.on(document, 'keydown', e => { if (e.key === 'Escape') this.close(); });
+            dom.on(window, 'resize', () => this.close());
+            // Capture phase so scrolling any container (not only the page) closes the popover
+            document.addEventListener('scroll', e => { if (this.el && !this.el.contains(e.target)) this.close(); }, true);
+        }
+    };
+
     function escapeHtml(s) {
         if (!s) return '';
         return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -678,7 +772,7 @@ const MonolithCV = (() => {
                 title: sec.title || '',
                 visible: sec.visible !== false,
                 priority: typeof sec.priority === 'number' ? sec.priority : i + 1,
-                items: Array.isArray(sec.items) ? sec.items.filter(it => it && typeof it === 'object') : []
+                items: Array.isArray(sec.items) ? sec.items.filter(it => it && typeof it === 'object').map(it => LEGACY_ICONS[it.icon] ? { ...it, icon: LEGACY_ICONS[it.icon] } : it) : []
             }))
         };
         // Theme used to live in the CV state; it is now a global preference
@@ -715,7 +809,7 @@ const MonolithCV = (() => {
         const p = pMap[lang];
         state.basics = { name: p.name, title: p.title, summary: p.sum };
         state.sections = [
-            { id: 'sec_contact', type: 'contact', column: 'side', title: p.contact, visible: true, priority: 1, items: [{ icon: '✉', label: p.email, value: p.email },{ icon: '☎', label: p.phone, value: p.phone }] },
+            { id: 'sec_contact', type: 'contact', column: 'side', title: p.contact, visible: true, priority: 1, items: [{ icon: 'icon:mail', label: p.email, value: p.email },{ icon: 'icon:phone', label: p.phone, value: p.phone }] },
             { id: 'sec_lang', type: 'languages', column: 'side', title: p.lang, visible: true, priority: 2, items: [{ icon: '', label: p.l1, value: p.l1v },{ icon: '', label: p.l2, value: p.l2v }] },
             { id: 'sec_skills', type: 'skills', column: 'side', title: p.skills, visible: true, priority: 3, items: [{ value: p.sk }] },
             { id: 'sec_exp', type: 'experience', column: 'main', title: p.exp, visible: true, priority: 4, items: [{ title: p.job, subtitle: p.comp, meta: p.date, location: p.loc, bullets: p.bull }] },
@@ -729,8 +823,8 @@ const MonolithCV = (() => {
     };
 
     const dict = {
-        en: { mainProfile: 'Main Profile', fullName: 'Full Name', jobTitle: 'Job Title', summary: 'Professional Summary', sections: 'CV Sections', templates: 'Visual Templates', autoLayout: 'Smart A4 Layout', fitMode: 'Fit Optimization', modeAuto: 'Automatic (Balanced)', modeRead: 'Prioritize Readability', modeCondense: 'Prioritize Space', fitInfo: 'The engine calculates font sizes and margins in real-time to fit content exactly into one A4 page.', documentSettings: 'Document Settings', showSidebar: 'Two-column layout', showSeparators: 'Line separators', accentColor: 'Accent Color', reset: 'Reset', profilePhoto: 'Profile Photo', enablePhoto: 'Include photo in document', noPhoto: 'No photo uploaded', upload: 'Upload', shape: 'Geometry', photoSize: 'Photo Size', photoInstructions: 'Interactive editing: Click (or touch) and drag to reposition. Use the mouse wheel or the zoom slider to zoom.', dataManagement: 'Data Management', dataPrivacy: 'All data is stored locally in your browser. Nothing is uploaded to any server.', photoZoom: 'Zoom', exportData: 'Export Backup', importData: 'Import Backup', dangerZone: 'Danger Zone', factoryReset: 'Factory Reset', exportPdf: 'Export PDF', navContent: 'Content', navDesign: 'Layout', navPhoto: 'Media', navData: 'Data', itemTitle: 'Title', itemSubtitle: 'Subtitle', itemMeta: 'Date/Meta', itemLocation: 'Location', itemBullets: 'Description (Bullets)', itemIcon: 'Icon', itemLabel: 'Label', itemValue: 'Value', itemSkills: 'Skills (comma separated)', btnDup: 'Duplicate', btnDel: 'Delete', btnAdd: 'Add Item', toggleVis: 'Visible', promptTitle: 'Section Title:', alertJson: 'Invalid JSON file.', confirmReset: 'Wipe all data and restore factory defaults?', styleVis: 'Visual Style', stContact: 'Icon List', stExp: 'Standard Entries', stSkill: 'Tags / Chips', stLang: 'Compact Text', dragHint: 'You can reorder sections by dragging and dropping them directly on the preview document.', undo: 'Undo', redo: 'Redo', remove: 'Remove', backToMenu: 'Back to menu', addSection: 'Add Section', newSection: 'New Section', alertSaveFail: 'Your changes could not be saved in this browser (storage is full or disabled). Export a backup to avoid losing data.', alertImage: 'The image could not be loaded.' },
-        es: { mainProfile: 'Perfil Principal', fullName: 'Nombre Completo', jobTitle: 'Cargo Profesional', summary: 'Resumen Profesional', sections: 'Secciones del CV', templates: 'Plantillas Visuales', autoLayout: 'Ajuste Inteligente A4', fitMode: 'Modo de Optimización', modeAuto: 'Automático (Equilibrado)', modeRead: 'Priorizar Legibilidad', modeCondense: 'Priorizar Espacio', fitInfo: 'El motor calcula fuentes y márgenes en tiempo real para empaquetar el contenido exactamente en una hoja A4.', documentSettings: 'Configuración Visual', showSidebar: 'Diseño a dos columnas', showSeparators: 'Separadores de línea', accentColor: 'Color de Acento', reset: 'Restablecer', profilePhoto: 'Fotografía', enablePhoto: 'Incluir foto en el documento', noPhoto: 'Sin fotografía', upload: 'Subir', shape: 'Geometría', photoSize: 'Tamaño de Foto', photoInstructions: 'Edición interactiva: Haz clic (o toca) y arrastra para mover. Usa la rueda del ratón o el control de zoom para acercar/alejar.', dataManagement: 'Gestión de Datos', dataPrivacy: 'Tus datos se guardan localmente en el navegador. No se sube nada a ningún servidor.', photoZoom: 'Zoom', exportData: 'Exportar Datos', importData: 'Importar Datos', dangerZone: 'Zona de Peligro', factoryReset: 'Restablecer Fábrica', exportPdf: 'Exportar PDF', navContent: 'Contenido', navDesign: 'Diseño', navPhoto: 'Medios', navData: 'Datos', itemTitle: 'Título', itemSubtitle: 'Subtítulo', itemMeta: 'Fecha/Meta', itemLocation: 'Ubicación', itemBullets: 'Descripción (Viñetas)', itemIcon: 'Icono', itemLabel: 'Etiqueta', itemValue: 'Valor', itemSkills: 'Habilidades (separadas por coma)', btnDup: 'Duplicar', btnDel: 'Eliminar', btnAdd: 'Añadir elemento', toggleVis: 'Visible', promptTitle: 'Título de la sección:', alertJson: 'Archivo JSON inválido.', confirmReset: '¿Borrar todos los datos y restaurar de fábrica?', styleVis: 'Estilo Visual', stContact: 'Lista con Iconos', stExp: 'Entradas Estándar', stSkill: 'Etiquetas (Chips)', stLang: 'Lista Compacta', dragHint: 'Puedes reordenar las secciones arrastrándolas y soltándolas directamente sobre la vista previa del documento.', undo: 'Deshacer', redo: 'Rehacer', remove: 'Eliminar', backToMenu: 'Volver al menú', addSection: 'Añadir sección', newSection: 'Nueva sección', alertSaveFail: 'Tus cambios no se pudieron guardar en este navegador (almacenamiento lleno o desactivado). Exporta una copia de seguridad para no perder datos.', alertImage: 'No se pudo cargar la imagen.' }
+        en: { mainProfile: 'Main Profile', fullName: 'Full Name', jobTitle: 'Job Title', summary: 'Professional Summary', sections: 'CV Sections', templates: 'Visual Templates', autoLayout: 'Smart A4 Layout', fitMode: 'Fit Optimization', modeAuto: 'Automatic (Balanced)', modeRead: 'Prioritize Readability', modeCondense: 'Prioritize Space', fitInfo: 'The engine calculates font sizes and margins in real-time to fit content exactly into one A4 page.', documentSettings: 'Document Settings', showSidebar: 'Two-column layout', showSeparators: 'Line separators', accentColor: 'Accent Color', reset: 'Reset', profilePhoto: 'Profile Photo', enablePhoto: 'Include photo in document', noPhoto: 'No photo uploaded', upload: 'Upload', shape: 'Geometry', photoSize: 'Photo Size', photoInstructions: 'Interactive editing: Click (or touch) and drag to reposition. Use the mouse wheel or the zoom slider to zoom.', dataManagement: 'Data Management', dataPrivacy: 'All data is stored locally in your browser. Nothing is uploaded to any server.', photoZoom: 'Zoom', exportData: 'Export Backup', importData: 'Import Backup', dangerZone: 'Danger Zone', factoryReset: 'Factory Reset', exportPdf: 'Export PDF', navContent: 'Content', navDesign: 'Layout', navPhoto: 'Media', navData: 'Data', itemTitle: 'Title', itemSubtitle: 'Subtitle', itemMeta: 'Date/Meta', itemLocation: 'Location', itemBullets: 'Description (Bullets)', itemIcon: 'Icon', itemLabel: 'Label', itemValue: 'Value', itemSkills: 'Skills (comma separated)', btnDup: 'Duplicate', btnDel: 'Delete', btnAdd: 'Add Item', toggleVis: 'Visible', promptTitle: 'Section Title:', alertJson: 'Invalid JSON file.', confirmReset: 'Wipe all data and restore factory defaults?', styleVis: 'Visual Style', stContact: 'Icon List', stExp: 'Standard Entries', stSkill: 'Tags / Chips', stLang: 'Compact Text', dragHint: 'You can reorder sections by dragging and dropping them directly on the preview document.', undo: 'Undo', redo: 'Redo', remove: 'Remove', backToMenu: 'Back to menu', chooseIcon: 'Choose icon', iconNone: 'No icon', iconCustom: 'Custom (emoji or text)', addSection: 'Add Section', newSection: 'New Section', alertSaveFail: 'Your changes could not be saved in this browser (storage is full or disabled). Export a backup to avoid losing data.', alertImage: 'The image could not be loaded.' },
+        es: { mainProfile: 'Perfil Principal', fullName: 'Nombre Completo', jobTitle: 'Cargo Profesional', summary: 'Resumen Profesional', sections: 'Secciones del CV', templates: 'Plantillas Visuales', autoLayout: 'Ajuste Inteligente A4', fitMode: 'Modo de Optimización', modeAuto: 'Automático (Equilibrado)', modeRead: 'Priorizar Legibilidad', modeCondense: 'Priorizar Espacio', fitInfo: 'El motor calcula fuentes y márgenes en tiempo real para empaquetar el contenido exactamente en una hoja A4.', documentSettings: 'Configuración Visual', showSidebar: 'Diseño a dos columnas', showSeparators: 'Separadores de línea', accentColor: 'Color de Acento', reset: 'Restablecer', profilePhoto: 'Fotografía', enablePhoto: 'Incluir foto en el documento', noPhoto: 'Sin fotografía', upload: 'Subir', shape: 'Geometría', photoSize: 'Tamaño de Foto', photoInstructions: 'Edición interactiva: Haz clic (o toca) y arrastra para mover. Usa la rueda del ratón o el control de zoom para acercar/alejar.', dataManagement: 'Gestión de Datos', dataPrivacy: 'Tus datos se guardan localmente en el navegador. No se sube nada a ningún servidor.', photoZoom: 'Zoom', exportData: 'Exportar Datos', importData: 'Importar Datos', dangerZone: 'Zona de Peligro', factoryReset: 'Restablecer Fábrica', exportPdf: 'Exportar PDF', navContent: 'Contenido', navDesign: 'Diseño', navPhoto: 'Medios', navData: 'Datos', itemTitle: 'Título', itemSubtitle: 'Subtítulo', itemMeta: 'Fecha/Meta', itemLocation: 'Ubicación', itemBullets: 'Descripción (Viñetas)', itemIcon: 'Icono', itemLabel: 'Etiqueta', itemValue: 'Valor', itemSkills: 'Habilidades (separadas por coma)', btnDup: 'Duplicar', btnDel: 'Eliminar', btnAdd: 'Añadir elemento', toggleVis: 'Visible', promptTitle: 'Título de la sección:', alertJson: 'Archivo JSON inválido.', confirmReset: '¿Borrar todos los datos y restaurar de fábrica?', styleVis: 'Estilo Visual', stContact: 'Lista con Iconos', stExp: 'Entradas Estándar', stSkill: 'Etiquetas (Chips)', stLang: 'Lista Compacta', dragHint: 'Puedes reordenar las secciones arrastrándolas y soltándolas directamente sobre la vista previa del documento.', undo: 'Deshacer', redo: 'Rehacer', remove: 'Eliminar', backToMenu: 'Volver al menú', chooseIcon: 'Elegir icono', iconNone: 'Sin icono', iconCustom: 'Personalizado (emoji o texto)', addSection: 'Añadir sección', newSection: 'Nueva sección', alertSaveFail: 'Tus cambios no se pudieron guardar en este navegador (almacenamiento lleno o desactivado). Exporta una copia de seguridad para no perder datos.', alertImage: 'No se pudo cargar la imagen.' }
     };
 
     let currentLang = store.get(LANG_KEY) === 'es' ? 'es' : 'en';
@@ -831,7 +925,7 @@ const MonolithCV = (() => {
         renderSection(sec) {
             let inner = '';
             if (sec.type === 'contact' || sec.type === 'languages') {
-                inner = `<div class="rs-kv">${sec.items.map(item => `<div class="rs-line">${item.icon ? `<span class="rs-prefix">${escapeHtml(item.icon)}</span>` : ''}<span><strong>${escapeHtml(item.label)}</strong>${item.value && item.value !== item.label ? `: ${escapeHtml(item.value)}` : ''}</span></div>`).join('')}</div>`;
+                inner = `<div class="rs-kv">${sec.items.map(item => `<div class="rs-line">${item.icon ? `<span class="rs-prefix">${iconHtml(item.icon)}</span>` : ''}<span><strong>${escapeHtml(item.label)}</strong>${item.value && item.value !== item.label ? `: ${escapeHtml(item.value)}` : ''}</span></div>`).join('')}</div>`;
             } else if (sec.type === 'skills') {
                 inner = `<div class="rs-chips">${sec.items.flatMap(it => (it.value||'').split(',').map(s=>s.trim()).filter(Boolean).map(s=>`<span class="rs-chip">${escapeHtml(s)}</span>`)).join('')}</div>`;
             } else {
@@ -1066,7 +1160,7 @@ const MonolithCV = (() => {
 
                 let fieldsHtml = '';
                 if (sec.type === 'contact' || sec.type === 'languages') {
-                    fieldsHtml = `<div style="display:grid;grid-template-columns:1fr 2fr 3fr;gap:8px;"><input class="form-control" placeholder="${t('itemIcon')}" data-k="icon" value="${escapeHtml(item.icon||'')}"><input class="form-control" placeholder="${t('itemLabel')}" data-k="label" value="${escapeHtml(item.label)}"><input class="form-control" placeholder="${t('itemValue')}" data-k="value" value="${escapeHtml(item.value)}"></div>`;
+                    fieldsHtml = `<div style="display:grid;grid-template-columns:auto 2fr 3fr;gap:8px;"><button type="button" class="form-control icon-trigger" data-a="icon" title="${t('chooseIcon')}">${item.icon ? iconHtml(item.icon) : '<span class="icon-empty">–</span>'}</button><input class="form-control" placeholder="${t('itemLabel')}" data-k="label" value="${escapeHtml(item.label)}"><input class="form-control" placeholder="${t('itemValue')}" data-k="value" value="${escapeHtml(item.value)}"></div>`;
                 } else if (sec.type === 'skills') {
                     fieldsHtml = `<textarea class="form-control" placeholder="${t('itemSkills')}" data-k="value">${escapeHtml(item.value)}</textarea>`;
                 } else {
@@ -1074,6 +1168,8 @@ const MonolithCV = (() => {
                 }
                 itemBox.innerHTML = `${fieldsHtml}<div style="display:flex;gap:6px;margin-top:10px;justify-content:flex-end;"><button class="btn btn-icon" data-a="up"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"/></svg></button><button class="btn btn-icon" data-a="dn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></button><button class="btn btn-icon" data-a="dup" title="${t('btnDup')}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button><button class="btn btn-icon btn-danger" data-a="del" title="${t('btnDel')}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button></div>`;
 
+                const iconBtn = itemBox.querySelector('[data-a="icon"]');
+                if (iconBtn) iconBtn.onclick = () => IconPicker.open(iconBtn, item.icon || '', val => { item.icon = val; requestFullUpdate(); });
                 itemBox.querySelectorAll('[data-k]').forEach(input => {
                     dom.on(input, 'input', () => { item[input.dataset.k] = input.value; requestPreviewUpdate(); });
                 });
@@ -1323,6 +1419,7 @@ const MonolithCV = (() => {
         });
 
         setupPreviewScaling();
+        IconPicker.init();
         setupNav();
         setupPhotoSystem();
         setupDataSystem();
