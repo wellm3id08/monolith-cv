@@ -14,9 +14,8 @@ MonolithCV is a static web app that runs entirely in your browser. I made it to 
 
 No sign-ups, no server, no cloud syncing. All data stays in your browser's local storage.
 
-## AI Assistance
-
-Some parts of the code, such as drag-and-drop behavior, auto-fit logic, and local storage handling, were written or improved with the help of an AI assistant. The design decisions and core product direction were human-led.
+## Test it: 
+https://wellm3id08.github.io/monolith-cv/
 
 ## Features
 
@@ -57,6 +56,10 @@ The site is plain HTML with no build step.
 2. In the repository, go to **Settings → Pages**.
 3. Under **Build and deployment**, set **Source** to *Deploy from a branch*, select your branch (e.g. `main`) and the `/ (root)` folder, then **Save**.
 4. After a minute the site is available at `https://<your-username>.github.io/<repository-name>/`.
+
+## AI Assistance
+
+Some parts of the code, such as drag-and-drop behavior, auto-fit logic, and local storage handling, were written or improved with the help of an AI assistant. The design decisions and core product direction were human-led.
 
 ## Run locally
 
