@@ -14,9 +14,8 @@ MonolithCV is a static web app that runs entirely in your browser. I made it to 
 
 No sign-ups, no server, no cloud syncing. All data stays in your browser's local storage.
 
-## AI Assistance
-
-Some parts of the code, such as drag-and-drop behavior, auto-fit logic, and local storage handling, were written or improved with the help of an AI assistant. The design decisions and core product direction were human-led.
+## Test it: 
+https://wellm3id08.github.io/monolith-cv/
 
 ## Features
 
@@ -49,6 +48,10 @@ Clearing your browser data deletes the saved CV, so export a backup for anything
 
 - Reordering sections uses HTML drag and drop, which does not work on touch screens.
 - Only one CV is stored per browser at a time; use backups to keep several.
+
+## AI Assistance
+
+Some parts of the code, such as drag-and-drop behavior, auto-fit logic, and local storage handling, were written or improved with the help of an AI assistant. The design decisions and core product direction were human-led.
 
 ## Deploy to GitHub Pages
 
