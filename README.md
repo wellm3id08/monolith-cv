@@ -8,14 +8,23 @@
   A web app that formats your CV to fit perfectly on a single A4 page.
 </p>
 
+<p align="center">
+  <a href="https://wellm3id08.github.io/monolith-cv/"><img src="https://img.shields.io/badge/demo-live-2ea44f" alt="Live demo"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/wellm3id08/monolith-cv" alt="GPL-3.0 license"></a>
+  <img src="https://img.shields.io/badge/data-stays%20in%20your%20browser-informational" alt="Data stays in your browser">
+</p>
+
 ---
 
 MonolithCV is a static web app that runs entirely in your browser. I made it to help me build a professional CV that actually fits on a single A4 page without having to fight with margins and font sizes.
 
 No sign-ups, no server, no cloud syncing. All data stays in your browser's local storage.
 
-## Test it: 
-https://wellm3id08.github.io/monolith-cv/
+## Try it
+
+[wellm3id08.github.io/monolith-cv](https://wellm3id08.github.io/monolith-cv/)
+
+![MonolithCV editor: form on the left, live A4 preview on the right](docs/screenshot.png)
 
 ## Features
 
